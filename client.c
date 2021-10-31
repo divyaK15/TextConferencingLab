@@ -11,6 +11,17 @@
 
 #define MESSAGE_SIZE 1024
 
+void login(char* login_info);
+void logout(char* logout_info);
+void join_session(int session_id);
+void leave_session();
+void create_session(int session_id);
+void list(); // make sure that the list of sessions is global if no arguments
+void quit();
+void text(char* buffer);
+
+
+
 int main(int argc, char *argv[]){
     
     // program expects IP address and port number as an argument, exit if fewer than 3 arguments
@@ -42,6 +53,25 @@ int main(int argc, char *argv[]){
         printf("Uh oh.\n");
         exit(1);
     }
+    /******* COMMANDS TO IMPLEMENT ********/
+    /*
+    /login <client ID> <password> <server-IP> <server-port>
+        Log into the server at the given address and port. The IP address is specified in the dotted decimal format
+    /logout
+        Log out of the server, but do not exit the client. The client should return to the same state as when you started running it
+    /joinsession <session ID> 
+        Join the conference session with the given session ID
+    /leavesession 
+        Leave the currently established session
+    /createsession <session ID> 
+        Create a new conference session and join it
+    /list 
+        Get the list of the connected clients and available sessions
+    /quit 
+        Terminate the program
+    <text> 
+        Send a message to the current conference session. The message is sent after the newline
+    */
 
     char buffer[MESSAGE_SIZE];
     // Practical System Programming with C: Pragmatic Example Applications in Linux and Unix-Based Operating Systems queue By Sri Manikanta Palakollu
