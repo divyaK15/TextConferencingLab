@@ -9,6 +9,13 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+//implement all the functions
+//one client can join multuple sessins but not at once 
+//if quit --> probably just exit while loop 
+//in main have a while loop 
+//read from buffer, determine command
+//call corrsponding function 
+
 #define MESSAGE_SIZE 1024
 
 void login(char* login_info);
