@@ -8,19 +8,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include "message.h"
 
-#define MESSAGE_SIZE 1024
-#define MESSAGE_SIZE 1024
-#define MAX_NAME 1024 
-#define MAX_DATA 1024 
 
-typedef struct message
-{
-    unsigned int type; 
-    unsigned int size; 
-    unsigned char source[MAX_NAME]; 
-    unsigned char data[MAX_DATA]; 
-} message;
+
 
 
 int main(int argc, char *argv[]){

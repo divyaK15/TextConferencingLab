@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include "message.h"
 
 //implement all the functions
 //one client can join multuple sessins but not at once 
@@ -16,9 +17,7 @@
 //read from buffer, determine command
 //call corrsponding function 
 
-#define MESSAGE_SIZE 1024
-#define MAX_NAME 1024 
-#define MAX_DATA 1024 
+
 #define LOGIN 15 
 #define LO_ACK 20 
 #define LO_NAK 25
@@ -45,13 +44,7 @@ void quit();
 void text(char* buffer);
 char password_client[100]; 
 
-typedef struct message
-{
-    unsigned int type; 
-    unsigned int size; 
-    unsigned char source[MAX_NAME]; 
-    unsigned char data[MAX_DATA]; 
-} message;
+
 
 message send_message;
 
