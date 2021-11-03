@@ -22,9 +22,9 @@
 
 void login(char* login_info);
 void logout(char* logout_info);
-void join_session(int session_id);
+void join_session(char* session_join);
 void leave_session();
-void create_session(int session_id);
+void create_session(char* session_create);
 void list(); // make sure that the list of sessions is global if no arguments
 void quit();
 void text(char* buffer);
@@ -109,37 +109,7 @@ int main(int argc, char *argv[]){
        }
         //login 
         else if((strncmp(buffer, "/login", 6))== 0){
-            char* username; 
-            char* password; 
-            char* server_ip; 
-            char* server_port; 
-            char newString[10][30]; 
-            int i,j,ctr; 
-
-            printf("buffer: %s\n", buffer); 
-            j=0; ctr=0; 
-            for(i=0; i<=(strlen(buffer)); i++){
-                if(buffer[i]==' ' || buffer[i]=='\0'){
-                    newString[ctr][j]='\0'; 
-                    ctr++;
-                    j=0; 
-                }
-                else{
-                    newString[ctr][j] = buffer[i]; 
-                    j++; 
-                }
-            }
-            username = newString[1]; 
-            password = newString[2]; 
-            server_ip = newString[3]; 
-            server_port = newString[4]; 
-
-            printf("username: %s\n", username); 
-            printf("password: %s\n", password); 
-            printf("server_ip: %s\n", server_ip); 
-            printf("server_port: %s\n", server_port); 
-            return 0; 
-            
+            login(buffer); 
         }
 
         //logout
@@ -149,17 +119,17 @@ int main(int argc, char *argv[]){
         
         //joinsession
         else if((strncmp(buffer, "/joinsession", 12)) == 0){
-            printf("join session: \n");
+            join_session(buffer); 
         }
 
         //leavesession
         else if((strncmp(buffer, "/leavesession", 13))== 0){
-            printf("leave session: \n");
+            
         }
 
         //createsession 
         else if((strncmp(buffer, "/createsession", 14)) == 0){
-            printf("create session: \n");
+            create_session(buffer); 
         }
 
         //list 
@@ -185,3 +155,77 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
+void login(char* buffer){
+    char* username; 
+    char* password; 
+    char* server_ip; 
+    char* server_port; 
+    char newString[10][30]; 
+    int i,j,ctr; 
+
+    printf("buffer: %s\n", buffer); 
+    j=0; ctr=0; 
+    for(i=0; i<=(strlen(buffer)); i++){
+        if(buffer[i]==' ' || buffer[i]=='\0'){
+            newString[ctr][j]='\0'; 
+            ctr++;
+            j=0; 
+        }
+        else{
+            newString[ctr][j] = buffer[i]; 
+            j++; 
+        }
+    }
+    username = newString[1]; 
+    password = newString[2]; 
+    server_ip = newString[3]; 
+    server_port = newString[4]; 
+
+    printf("username: %s\n", username); 
+    printf("password: %s\n", password); 
+    printf("server_ip: %s\n", server_ip); 
+    printf("server_port: %s\n", server_port); 
+    bzero(buffer, sizeof(buffer)); 
+}
+
+void join_session(char* buffer){
+    int i,j,ctr; 
+    char* join_session_id; 
+    char join_string[10][30];
+    j=0; ctr=0; 
+    for(i=0; i<=(strlen(buffer)); i++){
+        if(buffer[i]==' ' || buffer[i]=='\0'){
+            join_string[ctr][j]='\0'; 
+            ctr++;
+            j=0; 
+        }
+        else{
+            join_string[ctr][j] = buffer[i]; 
+            j++; 
+        }
+    }
+    join_session_id = join_string[1]; 
+
+    printf("join session: %s\n", join_session_id);
+    bzero(buffer, sizeof(buffer)); 
+}
+
+void create_session(char* buffer){
+    int i,j,ctr; 
+    char* create_session_id; 
+    char create_string[10][30];
+    j=0; ctr=0; 
+    for(i=0; i<=(strlen(buffer)); i++){
+        if(buffer[i]==' ' || buffer[i]=='\0'){
+            create_string[ctr][j]='\0'; 
+            ctr++;
+            j=0; 
+        }
+        else{
+            create_string[ctr][j] = buffer[i]; 
+            j++; 
+        }
+    }
+    create_session_id = create_string[1]; 
+    printf("create session: %s\n", create_session_id);
+}
