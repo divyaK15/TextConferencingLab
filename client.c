@@ -104,9 +104,36 @@ int main(int argc, char *argv[]){
            break;
        }
         //login 
-        if((strncmp(buffer, "login", 5))== 0){
-            printf("login \n"); 
+        else if((strncmp(buffer, "login", 5))== 0){
+            printf("login: \n"); 
         }
+
+        //logout
+        else if((strncmp(buffer, "logout", 6)) == 0){
+            printf("logout: \n");
+        }
+        
+        //joinsession
+        else if((strncmp(buffer, "joinsession", 11)) == 0){
+            printf("join session: \n");
+        }
+
+        //leavesession
+        else if((strncmp(buffer, "leavesession", 12))== 0){
+            printf("leave session: \n");
+        }
+
+        //createsession 
+        else if((strncmp(buffer, "createsession", 13)) == 0){
+            printf("create session: \n");
+        }
+
+        //list 
+        else if((strncmp(buffer, "list", 4)) == 0){
+            printf("join session: \n");
+        }
+
+        else{
 
        ssize_t bytes_sent = write(socket_fd, buffer, sizeof(buffer));
        if (bytes_sent >= 0){
@@ -116,6 +143,7 @@ int main(int argc, char *argv[]){
        // read response from server
        read(socket_fd, buffer, sizeof(buffer));
        printf("Data received from server: %s\n", buffer);
+        }
     }
 
     // close socket connection
