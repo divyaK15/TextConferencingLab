@@ -17,6 +17,8 @@
 //call corrsponding function 
 
 #define MESSAGE_SIZE 1024
+#define MAX_NAME 1024 
+#define MAX_DATA 1024 
 
 void login(char* login_info);
 void logout(char* logout_info);
@@ -27,9 +29,17 @@ void list(); // make sure that the list of sessions is global if no arguments
 void quit();
 void text(char* buffer);
 
-
+typedef struct message
+{
+    unsigned int type; 
+    unsigned int size; 
+    unsigned char source[MAX_NAME]; 
+    unsigned char data[MAX_DATA]; 
+} message;
 
 int main(int argc, char *argv[]){
+
+    char user_input[20];
     
     // program expects IP address and port number as an argument, exit if fewer than 3 arguments
     if(argc != 3){
@@ -88,11 +98,16 @@ int main(int argc, char *argv[]){
         scanf("%[^\n]%*c", buffer);
 
         // end the connection of the message sent was "end"
-        if ((strncmp(buffer, "end", 3)) == 0) {
+        if ((strncmp(buffer, "quit", 3)) == 0) {
            write(socket_fd, buffer, sizeof(buffer));
            printf("Client Exit.\n");
            break;
        }
+        //login 
+        if((strncmp(buffer, "login", 5))== 0){
+            printf("login \n"); 
+        }
+
        ssize_t bytes_sent = write(socket_fd, buffer, sizeof(buffer));
        if (bytes_sent >= 0){
            printf("Data sent to server successfully :)\n");

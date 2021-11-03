@@ -72,7 +72,7 @@ int main(int argc, char *argv[]){
        read(connection, buffer, sizeof(buffer));
 
        // ends the connection if it receives "end" from client
-       if (strncmp("end", buffer, 3) == 0) {
+       if (strncmp("quit", buffer, 3) == 0) {
            printf("Client Exited.\n");
            printf("Server is exiting.\n");
            break;
