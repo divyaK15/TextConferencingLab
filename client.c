@@ -20,6 +20,8 @@
 #define MAX_NAME 1024 
 #define MAX_DATA 1024 
 
+int socket_fd;
+
 void login(char* login_info);
 void logout(char* logout_info);
 void join_session(char* session_join);
@@ -37,6 +39,7 @@ typedef struct message
     unsigned char source[MAX_NAME]; 
     unsigned char data[MAX_DATA]; 
 } message;
+struct sockaddr_in serveraddress;
 
 
 
@@ -46,34 +49,34 @@ int main(int argc, char *argv[]){
     char user_input[20];
     
     // program expects IP address and port number as an argument, exit if fewer than 3 arguments
-    if(argc != 3){
-        printf("Enter in the following format: deliver <server IP address> <server port number> \nExiting program.\n"); 
-        exit(0);  
-    }
+    // if(argc != 3){
+    //     printf("Enter in the following format: deliver <server IP address> <server port number> \nExiting program.\n"); 
+    //     exit(0);  
+    // }
 
-    int port = atoi(argv[2]); 
+    // int port = atoi(argv[2]); 
 
     // create a TCP socket
-    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if(socket_fd < 0){
         printf("Error, no socket found.\n");
     }
 
     // populate server address information 
-    struct sockaddr_in serveraddress;
-    serveraddress.sin_family = AF_INET; 
-    serveraddress.sin_port = htons(port); 
-    serveraddress.sin_addr.s_addr = inet_addr(argv[1]); //https://pubs.opengroup.org/onlinepubs/009695399/functions/inet_addr.html
-    memset(serveraddress.sin_zero, 0, sizeof(serveraddress.sin_zero));
-    socklen_t sizeofserver = sizeof(serveraddress);
+    
+    // serveraddress.sin_family = AF_INET; 
+    // serveraddress.sin_port = htons(port); 
+    // serveraddress.sin_addr.s_addr = inet_addr(argv[1]); //https://pubs.opengroup.org/onlinepubs/009695399/functions/inet_addr.html
+    // memset(serveraddress.sin_zero, 0, sizeof(serveraddress.sin_zero));
+    // socklen_t sizeofserver = sizeof(serveraddress);
 
 
     // connecting with the server
-    int connection = connect(socket_fd, (struct sockaddr*)&serveraddress, sizeofserver);
-    if (connection == -1){
-        printf("Uh oh.\n");
-        exit(1);
-    }
+    // int connection = connect(socket_fd, (struct sockaddr*)&serveraddress, sizeofserver);
+    // if (connection == -1){
+    //     printf("Uh oh.\n");
+    //     exit(1);
+    // }
     /******* COMMANDS TO IMPLEMENT ********/
     /*
     /login <client ID> <password> <server-IP> <server-port>
@@ -180,6 +183,20 @@ void login(char* buffer){
     password = newString[2]; 
     server_ip = newString[3]; 
     server_port = newString[4]; 
+
+    int server_port_int = atoi(server_port);
+
+    serveraddress.sin_family = AF_INET; 
+    serveraddress.sin_port = htons(server_port_int); 
+    serveraddress.sin_addr.s_addr = inet_addr(server_ip); //https://pubs.opengroup.org/onlinepubs/009695399/functions/inet_addr.html
+    memset(serveraddress.sin_zero, 0, sizeof(serveraddress.sin_zero));
+    socklen_t sizeofserver = sizeof(serveraddress);
+
+    int connection = connect(socket_fd, (struct sockaddr*)&serveraddress, sizeofserver);
+    if (connection == -1){
+        printf("Uh oh.\n");
+        exit(1);
+    }
 
     printf("username: %s\n", username); 
     printf("password: %s\n", password); 
