@@ -19,6 +19,19 @@
 #define MESSAGE_SIZE 1024
 #define MAX_NAME 1024 
 #define MAX_DATA 1024 
+#define LOGIN 15 
+#define LO_ACK 20 
+#define LO_NAK 25
+#define EXIT 1000
+#define JOIN 30 
+#define JN_ACK 35 
+#define JN_NAK 40 
+#define LEAVE_SESS 50 
+#define NEW_SESS 60 
+#define NS_ACK 65 
+#define MESSAGE 70 
+#define QUERY 80 
+#define OU_ACK 85 
 
 int socket_fd;
 
@@ -39,6 +52,9 @@ typedef struct message
     unsigned char source[MAX_NAME]; 
     unsigned char data[MAX_DATA]; 
 } message;
+
+message send_message;
+
 struct sockaddr_in serveraddress;
 
 
@@ -196,6 +212,17 @@ void login(char* buffer){
     if (connection == -1){
         printf("Uh oh.\n");
         exit(1);
+    }
+
+    send_message.type = LOGIN; 
+    strcpy(send_message.data,password); 
+    send_message.size = sizeof(password); 
+    strcpy(send_message.source,username); 
+
+    ssize_t send_return; 
+    send_return = send(socket_fd, &send_message, sizeof(send_message), 0); 
+    if(send_return < 0){
+        printf("oof \n");
     }
 
     printf("username: %s\n", username); 

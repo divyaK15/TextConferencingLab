@@ -10,6 +10,18 @@
 #include <netdb.h>
 
 #define MESSAGE_SIZE 1024
+#define MESSAGE_SIZE 1024
+#define MAX_NAME 1024 
+#define MAX_DATA 1024 
+
+typedef struct message
+{
+    unsigned int type; 
+    unsigned int size; 
+    unsigned char source[MAX_NAME]; 
+    unsigned char data[MAX_DATA]; 
+} message;
+
 
 int main(int argc, char *argv[]){
 
@@ -68,8 +80,15 @@ int main(int argc, char *argv[]){
     // communication with client
     // Practical System Programming with C: Pragmatic Example Applications in Linux and Unix-Based Operating Systems queue By Sri Manikanta Palakollu
     while(1){
+       message mess_recvd; 
        bzero(buffer, MESSAGE_SIZE);
        read(connection, buffer, sizeof(buffer));
+       ssize_t recv_return; 
+       recv_return = recv(socket_fd, &mess_recvd, sizeof(mess_recvd), 0); 
+       if(recv_return < 0){
+           printf("no no recv \n"); 
+       }
+
 
        // ends the connection if it receives "end" from client
        if (strncmp("quit", buffer, 3) == 0) {
