@@ -98,38 +98,38 @@ int main(int argc, char *argv[]){
         scanf("%[^\n]%*c", buffer);
 
         // end the connection of the message sent was "end"
-        if ((strncmp(buffer, "quit", 3)) == 0) {
+        if ((strncmp(buffer, "quit", 5)) == 0) {
            write(socket_fd, buffer, sizeof(buffer));
            printf("Client Exit.\n");
            break;
        }
         //login 
-        else if((strncmp(buffer, "login", 5))== 0){
+        else if((strncmp(buffer, "/login", 6))== 0){
             printf("login: \n"); 
         }
 
         //logout
-        else if((strncmp(buffer, "logout", 6)) == 0){
+        else if((strncmp(buffer, "/logout", 7)) == 0){
             printf("logout: \n");
         }
         
         //joinsession
-        else if((strncmp(buffer, "joinsession", 11)) == 0){
+        else if((strncmp(buffer, "/joinsession", 12)) == 0){
             printf("join session: \n");
         }
 
         //leavesession
-        else if((strncmp(buffer, "leavesession", 12))== 0){
+        else if((strncmp(buffer, "/leavesession", 13))== 0){
             printf("leave session: \n");
         }
 
         //createsession 
-        else if((strncmp(buffer, "createsession", 13)) == 0){
+        else if((strncmp(buffer, "/createsession", 14)) == 0){
             printf("create session: \n");
         }
 
         //list 
-        else if((strncmp(buffer, "list", 4)) == 0){
+        else if((strncmp(buffer, "/list", 5)) == 0){
             printf("join session: \n");
         }
 
