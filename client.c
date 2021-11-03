@@ -28,6 +28,7 @@ void create_session(int session_id);
 void list(); // make sure that the list of sessions is global if no arguments
 void quit();
 void text(char* buffer);
+char password_client[100]; 
 
 typedef struct message
 {
@@ -36,6 +37,9 @@ typedef struct message
     unsigned char source[MAX_NAME]; 
     unsigned char data[MAX_DATA]; 
 } message;
+
+
+
 
 int main(int argc, char *argv[]){
 
@@ -105,7 +109,37 @@ int main(int argc, char *argv[]){
        }
         //login 
         else if((strncmp(buffer, "/login", 6))== 0){
-            printf("login: \n"); 
+            char* username; 
+            char* password; 
+            char* server_ip; 
+            char* server_port; 
+            char newString[10][30]; 
+            int i,j,ctr; 
+
+            printf("buffer: %s\n", buffer); 
+            j=0; ctr=0; 
+            for(i=0; i<=(strlen(buffer)); i++){
+                if(buffer[i]==' ' || buffer[i]=='\0'){
+                    newString[ctr][j]='\0'; 
+                    ctr++;
+                    j=0; 
+                }
+                else{
+                    newString[ctr][j] = buffer[i]; 
+                    j++; 
+                }
+            }
+            username = newString[1]; 
+            password = newString[2]; 
+            server_ip = newString[3]; 
+            server_port = newString[4]; 
+
+            printf("username: %s\n", username); 
+            printf("password: %s\n", password); 
+            printf("server_ip: %s\n", server_ip); 
+            printf("server_port: %s\n", server_port); 
+            return 0; 
+            
         }
 
         //logout
@@ -150,3 +184,4 @@ int main(int argc, char *argv[]){
     close(socket_fd);
     return 0;
 }
+
