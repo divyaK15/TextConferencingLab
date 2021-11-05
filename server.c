@@ -76,7 +76,7 @@ int main(int argc, char *argv[]){
        ssize_t recv_return; 
        recv_return = recv(socket_fd, &mess_recvd, sizeof(mess_recvd), 0); 
        if(recv_return < 0){
-           printf("no no recv \n"); 
+           perror("no no recv \n"); 
        }
 
 
