@@ -12,7 +12,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define PORT "9034"   // port we're listening on
+#define PORT "4999"   // port we're listening on
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -71,6 +71,7 @@ int main(void)
 			close(listener);
 			continue;
 		}
+        printf("binded\n");
 
 		break;
 	}

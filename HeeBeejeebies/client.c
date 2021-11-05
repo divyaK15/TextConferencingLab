@@ -201,22 +201,41 @@ void login(char* buffer){
     memset(serveraddress.sin_zero, 0, sizeof(serveraddress.sin_zero));
     socklen_t sizeofserver = sizeof(serveraddress);
 
+
     int connection = connect(socket_fd, (struct sockaddr*)&serveraddress, sizeofserver);
     if (connection == -1){
-        perror("Uh oh.\n");
+        printf("Uh oh.\n");
         exit(1);
     }
 
+    printf("before strcpy\n");
+
     send_message.type = LOGIN; 
+    bzero(send_message.data, sizeof(send_message.data));
     strcpy(send_message.data,password); 
     send_message.size = sizeof(password); 
+    bzero(send_message.source, sizeof(send_message.source));
     strcpy(send_message.source,username); 
+    char message_string[1000]; 
+
+    printf("after strcpy\n");
+    printf("type: %u\n size: %u\nsource: %s\ndata: %s\n", send_message.type, send_message.size, send_message.source, send_message.data);
+
+
+    int message_string_temp = sprintf(message_string, "%u:%u:%s:%s",send_message.type, send_message.size, send_message.source, send_message.data);
+    //memcpy(message_string, send_message.filedata, packetToSend.size);
+    printf("before seg fault probably idk\n");
+    printf("message: %s\n",message_string);
+
+
 
     ssize_t send_return; 
-    send_return = send(socket_fd, &send_message, sizeof(send_message), 0); 
+    //send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
+    send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
     if(send_return < 0){
         printf("oof \n");
     }
+
 
     printf("username: %s\n", username); 
     printf("password: %s\n", password); 
