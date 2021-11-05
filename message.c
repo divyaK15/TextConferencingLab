@@ -8,65 +8,59 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include "packet.h"
+#include "message.h"
 
 
-message convertStringToMessage(char* packetString, int sizeOfPacket){
-    packet packetStruct;
+message convertStringToMessage(char* msgString, int sizeOfMessage){
+    message msgStruct;
     //packetStructptr_g = &packetStruct;
     
     // iterate through string and when we reach : its the next element of the struct
-    int stringLength = sizeOfPacket;
+    int stringLength = sizeOfMessage;
     int colonCount = 0;
     int colonIndex = 0;
     int colonPrevious = 0;
-    char* packet_headers[5]; 
-    int packet_header_index = 0; 
+    char msgHeaders[5]; 
+    int msgHeaderIndex = 0; 
 
     //the packet's fields should all be divided into parts of the array (five total)
     for (int i = 0; i < stringLength; i++){
-        if (packetString[i] == ':'){
+        if (msgString[i] == ':'){
             colonCount++;
             colonIndex = i;
             //printf("strlength %d\n", stringLength);
             if (colonCount == 1){
-                packet_headers[0] = malloc(sizeof(char) * (i - colonPrevious));
-                memcpy(packet_headers[0], packetString + colonPrevious, i - colonPrevious);
+                msgHeaders[0] = malloc(sizeof(char) * (i - colonPrevious));
+                memcpy((char*)msgHeaders[0], msgString + colonPrevious, i - colonPrevious);
                 colonPrevious = colonIndex; 
-                packetStruct.total_frag = atoi(packet_headers[0]);
+                msgStruct.type = atoi((char*)msgHeaders[0]);
                 //printf("total frag = %u\n", packetStruct.total_frag);
             }
             else if (colonCount == 2){
-                packet_headers[1] = malloc(sizeof(char) * (i - colonPrevious));
-                memcpy(packet_headers[1], packetString + colonPrevious + 1, i - colonPrevious - 1 );
+                msgHeaders[1] = malloc(sizeof(char) * (i - colonPrevious));
+                memcpy(msgHeaders[1], msgString + colonPrevious + 1, i - colonPrevious - 1 );
                 colonPrevious = colonIndex; 
-                packetStruct.frag_no = atoi(packet_headers[1]);
+                msgStruct.size = atoi(msgHeaders[1]);
                 //printf("frag no: %u \n",packetStruct.frag_no);
             }
             else if (colonCount == 3){
-                packet_headers[2] = malloc(sizeof(char) * (i - colonPrevious));
-                memcpy(packet_headers[2], packetString + colonPrevious + 1, i - colonPrevious);
+                msgHeaders[2] = malloc(sizeof(char) * (i - colonPrevious));
+                memcpy(msgHeaders[2], msgString + colonPrevious + 1, i - colonPrevious);
                 colonPrevious = colonIndex; 
-                packetStruct.size = atoi(packet_headers[2]);
+                strcpy(msgStruct.source, msgHeaders[2]); // source is the username in this case, character array
                 //printf("size: %u \n",packetStruct.size);
             }
             else if(colonCount == 4){   
-                packet_headers[3] = malloc(sizeof(char) * (i - colonPrevious));
-                memcpy(packet_headers[3], packetString + colonPrevious + 1, i - colonPrevious - 1);
+                msgHeaders[3] = malloc(sizeof(char) * (i - colonPrevious));
+                memcpy(msgHeaders[3], msgString + colonPrevious + 1, i - colonPrevious - 1);
                 colonPrevious = colonIndex; 
-                packetStruct.filename = packet_headers[3];
+                strcpy(msgStruct.data, msgHeaders[3]);
                 //printf("filename: %s\n",packetStruct.filename);
-            }
-            else{
-                printf("Too many entries.\n");
-
-            }
-            
+            }         
         }
     }
-    memcpy(packetStruct.filedata, packetString + colonPrevious+ 1, packetStruct.size); // check this one
+    memcpy(msgStruct.data, msgString + colonPrevious + 1, msgStruct.size); // check this one
     //printf("filedata: %s \n",packetStruct.filedata);
 
-    return packetStruct;
-    //return packetStructptr_g;
+    return msgStruct;
 }
