@@ -13,14 +13,13 @@
 
 message convertStringToMessage(char* msgString, int sizeOfMessage){
     message msgStruct;
-    //packetStructptr_g = &packetStruct;
     
     // iterate through string and when we reach : its the next element of the struct
     int stringLength = sizeOfMessage;
-    int colonCount = 0;
+    int colonCount = 0; // hey
     int colonIndex = 0;
     int colonPrevious = 0;
-    char msgHeaders[5]; 
+    char* msgHeaders[5]; 
     int msgHeaderIndex = 0; 
 
     //the packet's fields should all be divided into parts of the array (five total)
