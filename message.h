@@ -8,10 +8,10 @@
 
 typedef struct message
 {
-    unsigned int type; 
-    unsigned int size; 
-    unsigned char source[MAX_NAME]; 
-    unsigned char data[MAX_DATA]; 
+    unsigned int type; // type of command
+    unsigned int size; // size of message
+    unsigned char source[MAX_NAME]; // username as visible to other users in the chat room
+    unsigned char data[MAX_DATA]; // message to send
     
 } message;
 
