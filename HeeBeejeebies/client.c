@@ -3,11 +3,13 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <pthread.h>
 #include "message.h"
 
 //implement all the functions
@@ -33,6 +35,7 @@
 #define OU_ACK 85 
 
 int socket_fd;
+bool connected = false;
 
 void login(char* login_info);
 void logout(char* logout_info);
@@ -48,13 +51,23 @@ char password_client[100];
 
 message send_message;
 
+
+// https://codingile.wordpress.com/2019/04/07/multiuser-chat-server-in-c/ 
+void *recvmg(void *my_sock, char* buffer)
+{
+	int sock = *((int *)my_sock);
+	int len;
+	// client thread always ready to receive message
+	while((len = recv(sock,buffer,500,0)) > 0) {
+		buffer[len] = '\0';
+		fputs(buffer,stdout);
+	}
+}
+
 struct sockaddr_in serveraddress;
 
-
-
-
 int main(int argc, char *argv[]){
-
+    pthread_t recvt;
     char user_input[20];
     
     // program expects IP address and port number as an argument, exit if fewer than 3 arguments
@@ -107,8 +120,25 @@ int main(int argc, char *argv[]){
     */
 
     char buffer[MESSAGE_SIZE];
+    bool thread_created = false;
+    char msg[500];
+    char client_name[100];
+    char send_msg[500];
     // Practical System Programming with C: Pragmatic Example Applications in Linux and Unix-Based Operating Systems queue By Sri Manikanta Palakollu
     while(1){
+        if (connected && !thread_created){
+            thread_created = true;
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
+            
+            /*while(fgets(msg,500,stdin) > 0) {
+                strcpy(send_msg,client_name);
+                strcat(send_msg,":");
+                strcat(send_msg,msg);
+                int len = write(socket_fd,send_msg,strlen(send_msg));
+                if(len < 0) 
+			printf("n message not sent n");
+	        }*/
+        }
         bzero(buffer, sizeof(buffer));
         printf("Enter the message for the server:\n");
         scanf("%[^\n]%*c", buffer);
@@ -161,7 +191,8 @@ int main(int argc, char *argv[]){
        printf("Data received from server: %s\n", buffer);
         }
     }
-
+    //thread is closed 
+    pthread_join(recvt,NULL);
     // close socket connection
     close(socket_fd);
     return 0;
@@ -207,6 +238,7 @@ void login(char* buffer){
         printf("Uh oh.\n");
         exit(1);
     }
+    connected = true;
 
     printf("before strcpy\n");
 
