@@ -12,7 +12,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define PORT "4999"   // port we're listening on
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -24,8 +23,15 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
+    char* port = argv[1];
+    
+    if(argc != 2){
+        printf("Enter in the following format: server <port number> \nExiting program.\n");   
+        exit(0);   // https://stackoverflow.com/questions/9944785/what-is-the-difference-between-exit0-and-exit1-in-c/9944875
+    }
+
     fd_set master;    // master file descriptor list
     fd_set read_fds;  // temp file descriptor list for select()
     int fdmax;        // maximum file descriptor number
@@ -38,7 +44,7 @@ int main(void)
     char buf[256];    // buffer for client data
     int nbytes;
 
-	char remoteIP[INET6_ADDRSTRLEN];
+	char remoteIP[INET_ADDRSTRLEN]; // this used to be INET6_ADDSTRLEN
 
     int yes=1;        // for setsockopt() SO_REUSEADDR, below
     int i, j, rv;
@@ -50,21 +56,23 @@ int main(void)
 
 	// get us a socket and bind it
 	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
-	if ((rv = getaddrinfo(NULL, PORT, &hints, &ai)) != 0) {
+	hints.ai_flags = AI_PASSIVE; // what is AI PASSIVE
+	if ((rv = getaddrinfo(NULL, port, &hints, &ai)) != 0) {
 		fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
 		exit(1);
 	}
 	
 	for(p = ai; p != NULL; p = p->ai_next) {
+        // listener is the file descriptor
     	listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 		if (listener < 0) { 
 			continue;
 		}
 		
 		// lose the pesky "address already in use" error message
+        // we can reuse local addresses
 		setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
 		if (bind(listener, p->ai_addr, p->ai_addrlen) < 0) {
@@ -73,6 +81,7 @@ int main(void)
 		}
         printf("binded\n");
 
+        // only going to the first one that binds
 		break;
 	}
 
@@ -110,9 +119,7 @@ int main(void)
                 if (i == listener) {
                     // handle new connections
                     addrlen = sizeof remoteaddr;
-					newfd = accept(listener,
-						(struct sockaddr *)&remoteaddr,
-						&addrlen);
+					newfd = accept(listener, (struct sockaddr *)&remoteaddr, &addrlen);
 
 					if (newfd == -1) {
                         perror("accept");
@@ -123,10 +130,7 @@ int main(void)
                         }
                         printf("selectserver: new connection from %s on "
                             "socket %d\n",
-							inet_ntop(remoteaddr.ss_family,
-								get_in_addr((struct sockaddr*)&remoteaddr),
-								remoteIP, INET6_ADDRSTRLEN),
-							newfd);
+							inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr*)&remoteaddr),remoteIP, INET6_ADDRSTRLEN), newfd);
                     }
                 } else {
                     // handle data from a client
