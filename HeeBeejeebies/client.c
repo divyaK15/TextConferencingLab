@@ -42,7 +42,7 @@ void logout(char* logout_info);
 void join_session(char* session_join);
 void leave_session();
 void create_session(char* session_create);
-void list(); // make sure that the list of sessions is global if no arguments
+void list_sessions(); // make sure that the list of sessions is global if no arguments
 void quit();
 void text(char* buffer);
 char password_client[100]; 
@@ -102,9 +102,11 @@ int main(int argc, char *argv[]){
     /******* COMMANDS TO IMPLEMENT ********/
     /*
     /login <client ID> <password> <server-IP> <server-port>
-        Log into the server at the given address and port. The IP address is specified in the dotted decimal format
+        Log into the server at the given address and port. 
+        The IP address is specified in the dotted decimal format
     /logout
-        Log out of the server, but do not exit the client. The client should return to the same state as when you started running it
+        Log out of the server, but do not exit the client. 
+        The client should return to the same state as when you started running it
     /joinsession <session ID> 
         Join the conference session with the given session ID
     /leavesession 
@@ -125,23 +127,30 @@ int main(int argc, char *argv[]){
     char client_name[100];
     char send_msg[500];
     // Practical System Programming with C: Pragmatic Example Applications in Linux and Unix-Based Operating Systems queue By Sri Manikanta Palakollu
+    pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
     while(1){
-        if (connected && !thread_created){
+
+        bzero(buffer, sizeof(buffer));
+        printf("Enter the message for the server:\n");
+        scanf("%[^\n]%*c", buffer);
+
+        /*if (connected && !thread_created){
             thread_created = true;
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             
-            /*while(fgets(msg,500,stdin) > 0) {
+            while(fgets(msg,500,stdin) > 0) {
                 strcpy(send_msg,client_name);
                 strcat(send_msg,":");
                 strcat(send_msg,msg);
                 int len = write(socket_fd,send_msg,strlen(send_msg));
                 if(len < 0) 
 			printf("n message not sent n");
-	        }*/
+	        }
         }
-        bzero(buffer, sizeof(buffer));
-        printf("Enter the message for the server:\n");
-        scanf("%[^\n]%*c", buffer);
+        else{
+            scanf("%[^\n]%*c", buffer);
+        }*/
+        
 
         // end the connection of the message sent was "end"
         if ((strncmp(buffer, "quit", 5)) == 0) {
@@ -166,7 +175,8 @@ int main(int argc, char *argv[]){
 
         //leavesession
         else if((strncmp(buffer, "/leavesession", 13))== 0){
-            
+            //leave_session();
+            printf("leaving session\n");
         }
 
         //createsession 
@@ -176,19 +186,20 @@ int main(int argc, char *argv[]){
 
         //list 
         else if((strncmp(buffer, "/list", 5)) == 0){
-            printf("join session: \n");
+            //list_sessions();
+            printf("list sessions \n");
         }
 
         else{
 
-       ssize_t bytes_sent = write(socket_fd, buffer, sizeof(buffer));
-       if (bytes_sent >= 0){
-           printf("Data sent to server successfully :)\n");
-       }
-       bzero(buffer, sizeof(buffer));
-       // read response from server
-       read(socket_fd, buffer, sizeof(buffer));
-       printf("Data received from server: %s\n", buffer);
+            ssize_t bytes_sent = write(socket_fd, buffer, sizeof(buffer));
+            if (bytes_sent >= 0){
+                printf("Data sent to server successfully :)\n");
+            }
+            bzero(buffer, sizeof(buffer));
+            // read response from server
+            read(socket_fd, buffer, sizeof(buffer));
+            printf("Data received from server: %s\n", buffer);
         }
     }
     //thread is closed 
@@ -240,8 +251,6 @@ void login(char* buffer){
     }
     connected = true;
 
-    printf("before strcpy\n");
-
     send_message.type = LOGIN; 
     bzero(send_message.data, sizeof(send_message.data));
     strcpy(send_message.data,password); 
@@ -250,16 +259,12 @@ void login(char* buffer){
     strcpy(send_message.source,username); 
     char message_string[1000]; 
 
-    printf("after strcpy\n");
     printf("type: %u\n size: %u\nsource: %s\ndata: %s\n", send_message.type, send_message.size, send_message.source, send_message.data);
 
 
     int message_string_temp = sprintf(message_string, "%u:%u:%s:%s",send_message.type, send_message.size, send_message.source, send_message.data);
     //memcpy(message_string, send_message.filedata, packetToSend.size);
-    printf("before seg fault probably idk\n");
     printf("message: %s\n",message_string);
-
-
 
     ssize_t send_return; 
     //send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
@@ -267,7 +272,6 @@ void login(char* buffer){
     if(send_return < 0){
         printf("oof \n");
     }
-
 
     printf("username: %s\n", username); 
     printf("password: %s\n", password); 
