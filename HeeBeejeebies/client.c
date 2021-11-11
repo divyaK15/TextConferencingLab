@@ -36,6 +36,7 @@
 
 int socket_fd;
 bool connected = false;
+pthread_mutex_t mutex;
 
 void login(char* login_info);
 void logout(char* logout_info);
@@ -50,7 +51,7 @@ char password_client[100];
 
 
 message send_message;
-
+struct sockaddr_in serveraddress;
 
 // https://codingile.wordpress.com/2019/04/07/multiuser-chat-server-in-c/ 
 void *recvmg(void *my_sock, char* buffer)
@@ -64,7 +65,7 @@ void *recvmg(void *my_sock, char* buffer)
 	}
 }
 
-struct sockaddr_in serveraddress;
+
 
 int main(int argc, char *argv[]){
     pthread_t recvt;
