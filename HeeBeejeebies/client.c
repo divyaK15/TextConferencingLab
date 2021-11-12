@@ -67,7 +67,7 @@ void *recvmg(void *my_sock, char* buffer)
 
 
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]){   
     pthread_t recvt;
     char user_input[20];
     
