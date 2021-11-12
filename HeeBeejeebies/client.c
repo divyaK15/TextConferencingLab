@@ -36,7 +36,7 @@
 
 int socket_fd;
 bool connected = false;
-pthread_mutex_t mutex;
+
 
 void login(char* login_info);
 void logout(char* logout_info);
