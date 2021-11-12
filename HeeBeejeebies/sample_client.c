@@ -29,7 +29,7 @@
 
 char msg[500] = {'\0'};
 void login(char* login_info);
-//void messageToString(message message, char* string);
+void logout();
 void messageToString(unsigned int type/*, unsigned int size*/, unsigned char source[MAX_NAME], unsigned char data[MAX_DATA], char* string);
 
 int socket_fd;
@@ -58,7 +58,7 @@ int main(int argc,char *argv[]){
 	strcpy(client_name, argv[1]);
 
     // establish connection with server first, then can create threads for listening
-	socket_fd = socket(AF_INET, SOCK_STREAM,0);
+	
 	/*ServerIp.sin_port = htons(4999);
 	ServerIp.sin_family = AF_INET;
 	ServerIp.sin_addr.s_addr = inet_addr("128.100.13.240");
@@ -75,12 +75,16 @@ int main(int argc,char *argv[]){
             login(msg); 
 			pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
         }
+        else if((strncmp(msg, "/logout", 7)) == 0){
+            logout();
+            printf("logout: \n");
+        }
 		strcpy(send_msg,client_name);
 		strcat(send_msg,": ");
 		strcat(send_msg,msg);
 		len = write(socket_fd,send_msg,strlen(send_msg));
 		if(len < 0) 
-			printf("n message not sent n");
+			printf("n message not sent n\n");
 	}
 	
 	//thread is closed
@@ -126,6 +130,7 @@ void login(char* buffer){
     char newString[10][30]; 
     int i,j,ctr; 
 
+    socket_fd = socket(AF_INET, SOCK_STREAM,0);
     printf("buffer: %s\n", buffer); 
     j=0; ctr=0; 
     for(i=0; i<=(strlen(buffer)); i++){
@@ -193,4 +198,9 @@ void login(char* buffer){
     printf("server_ip: %s\n", server_ip); 
     printf("server_port: %s\n", server_port); */
     bzero(buffer, sizeof(buffer)); 
+}
+
+// implement logout
+void logout(){
+    close(socket_fd);
 }
