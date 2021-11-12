@@ -11,7 +11,21 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include "message.h"
 
+#define LOGIN 15 
+#define LO_ACK 20 
+#define LO_NAK 25
+#define EXIT 1000
+#define JOIN 30 
+#define JN_ACK 35 
+#define JN_NAK 40 
+#define LEAVE_SESS 50 
+#define NEW_SESS 60 
+#define NS_ACK 65 
+#define MESSAGE 70 
+#define QUERY 80 
+#define OU_ACK 85 
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -147,15 +161,42 @@ int main(int argc, char *argv[])
                     } else {
                         // we got some data from a client
                         for(j = 0; j <= fdmax; j++) {
-                            // send to everyone!
-                            if (FD_ISSET(j, &master)) {
-                                // except the listener and ourselves
-                                if (j != listener && j != i) {
-                                    if (send(j, buf, nbytes, 0) == -1) {
-                                        perror("send");
+                            char buf_cpy[MESSAGE_SIZE] = {'\0'};
+                            message recv_message;
+                            strcpy(buf_cpy, buf);
+                            recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
+                            if (recv_message.type == LOGIN){
+                                printf("control message received: login\n");
+                            }
+                            /*else if (recv_message.type == LOGOUT){
+                                 printf("control message received: logout\n");
+                            }*/
+                            else if (recv_message.type == JOIN){
+                                 printf("control message received: join\n");
+                            }
+                            else if (recv_message.type == LEAVE_SESS){
+                                 printf("control message received: leave\n");
+                            }
+                            else if (recv_message.type == NEW_SESS){
+                                 printf("control message received: create\n");
+                            }
+                            else if (recv_message.type == QUERY){
+                                 printf("control message received: list\n");
+                            }
+                            else if (recv_message.type == EXIT){
+                                 printf("control message received: quit\n");
+                            }
+                            else{
+                                // send to everyone!
+                                if (FD_ISSET(j, &master)) {
+                                    // except the listener and ourselves
+                                    if (j != listener && j != i) {
+                                        if (send(j, buf, nbytes, 0) == -1) {
+                                            perror("send");
+                                        }
                                     }
                                 }
-                            }
+                            }  
                         }
                     }
                 } // END handle data from client
