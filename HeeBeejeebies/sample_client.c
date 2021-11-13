@@ -86,7 +86,7 @@ int main(int argc,char *argv[]){
 		if(len < 0) 
 			printf("n message not sent n\n");
 	}
-	
+	  
 	//thread is closed
 	pthread_join(recvt,NULL);
 	close(socket_fd);
