@@ -86,7 +86,7 @@ int main(int argc,char *argv[]){
         }
         else if((strncmp(msg, "/joinsession", 12)) == 0){
             joinSession(msg);
-            printf("join session: \n");
+            printf("join session call: \n");
         }
         else if((strncmp(msg, "/leavesession", 13)) == 0){
             leaveSession();
@@ -97,7 +97,11 @@ int main(int argc,char *argv[]){
             printf("leave session: \n");
         }
         else if((strncmp(msg, "/quit", 5)) == 0){
-            list();
+            quit();
+            printf("quit session: \n");
+        }
+        else if((strncmp(msg, "/createsession", 14)) == 0){
+            createSession(msg);
             printf("quit session: \n");
         }
 		strcpy(send_msg,client_name);
@@ -227,8 +231,10 @@ void logout(){
 }
 
 void joinSession(char* buffer){
-    char* joinSessionID; 
-    j=0; ctr=0; 
+    char* joinSessionID;
+    char newString[10][30];  
+    int i, j, ctr; 
+    i=0; j=0; ctr=0; 
     for(i=0; i<=(strlen(buffer)); i++){
         if(buffer[i]==' ' || buffer[i]=='\0'){
             newString[ctr][j]='\0'; 
@@ -241,8 +247,42 @@ void joinSession(char* buffer){
         }
     }
 
-    joinSessionID = newString[0]; 
-    printf("session ID: %s\n"joinSessionID); 
+    joinSessionID = newString[1]; 
+    printf("session ID: %s\n", joinSessionID); 
 
+
+}
+
+void leaveSession(){
+
+}
+
+void list(){
+
+}
+
+void quit(){
+
+}
+
+void createSession(char* buffer){
+    char* createSessionID;
+    char newString[10][30];  
+    int i, j, ctr; 
+    i=0; j=0; ctr=0; 
+    for(i=0; i<=(strlen(buffer)); i++){
+        if(buffer[i]==' ' || buffer[i]=='\0'){
+            newString[ctr][j]='\0'; 
+            ctr++;
+            j=0; 
+        }
+        else{
+            newString[ctr][j] = buffer[i]; 
+            j++; 
+        }
+    }
+
+    createSessionID = newString[1]; 
+    printf("session ID: %s\n", createSessionID); 
 
 }
