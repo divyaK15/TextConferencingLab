@@ -30,6 +30,11 @@
 char msg[500] = {'\0'};
 void login(char* login_info);
 void logout();
+void joinSession(char* session_id);
+void leaveSession(); 
+void createSession(char* new_session_id); 
+void list(); 
+void quit(); 
 void messageToString(unsigned int type/*, unsigned int size*/, unsigned char source[MAX_NAME], unsigned char data[MAX_DATA], char* string);
 
 int socket_fd;
@@ -78,6 +83,22 @@ int main(int argc,char *argv[]){
         else if((strncmp(msg, "/logout", 7)) == 0){
             logout();
             printf("logout: \n");
+        }
+        else if((strncmp(msg, "/joinsession", 12)) == 0){
+            joinSession(msg);
+            printf("join session: \n");
+        }
+        else if((strncmp(msg, "/leavesession", 13)) == 0){
+            leaveSession();
+            printf("leave session: \n");
+        }
+        else if((strncmp(msg, "/list", 5)) == 0){
+            list();
+            printf("leave session: \n");
+        }
+        else if((strncmp(msg, "/quit", 5)) == 0){
+            list();
+            printf("quit session: \n");
         }
 		strcpy(send_msg,client_name);
 		strcat(send_msg,": ");
@@ -203,4 +224,25 @@ void login(char* buffer){
 // implement logout
 void logout(){
     close(socket_fd);
+}
+
+void joinSession(char* buffer){
+    char* joinSessionID; 
+    j=0; ctr=0; 
+    for(i=0; i<=(strlen(buffer)); i++){
+        if(buffer[i]==' ' || buffer[i]=='\0'){
+            newString[ctr][j]='\0'; 
+            ctr++;
+            j=0; 
+        }
+        else{
+            newString[ctr][j] = buffer[i]; 
+            j++; 
+        }
+    }
+
+    joinSessionID = newString[0]; 
+    printf("session ID: %s\n"joinSessionID); 
+
+
 }
