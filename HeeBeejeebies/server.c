@@ -27,6 +27,13 @@
 #define QUERY 80 
 #define OU_ACK 85 
 
+typedef struct client_info{ 
+    unsigned char username[MAX_NAME]; // username as visible to other users in the chat room
+    unsigned char password[MAX_NAME]; // username as visible to other users in the chat room
+    unsigned char current_session[MAX_NAME]; // username as visible to other users in the chat room
+    int fd; 
+} client_info; 
+
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
