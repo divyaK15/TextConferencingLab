@@ -27,6 +27,7 @@
 #define MESSAGE 70 
 #define QUERY 80 
 #define OU_ACK 85 
+#define MAX_USERS 100
 
 typedef struct client_info{ 
     unsigned char username[MAX_NAME]; // username as visible to other users in the chat room
@@ -40,7 +41,7 @@ typedef struct client_info{
 //When new client connects, intitialize struct with client info 
 // add the struct to the pointer array 
 
-client_info* g_masterClientList[100] = {NULL}; 
+client_info* g_masterClientList[MAX_USERS] = {NULL}; 
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -199,7 +200,23 @@ int main(int argc, char *argv[])
                                  printf("control message received: logout\n");
                             }*/
                             else if (recv_message.type == JOIN){
-                                 printf("control message received: join\n");
+                                printf("control message received: join\n");
+                                int i = 0;
+                                bool joinedSession = false;
+                                for(i = 0 ; (i<MAX_USERS) && (g_masterClientList[i] != NULL) && (!joinedSession); i++){ 
+                                    client_info* current_client = g_masterClientList[i];
+                                    if (strcmp(current_client->username, recv_message.source) == 0){
+                                        strcpy(current_client->current_session,recv_message.data);
+                                        printf("Current Session: %s\nReceived message data: %s",current_client->current_session, recv_message.data); 
+                                        joinedSession = true;
+                                        printf("joined session or something idk\n");
+                                    } 
+
+                                }
+                                if (!joinedSession){
+                                    printf("failed to join session. \n");
+                                }
+                                
                             }
                             else if (recv_message.type == LEAVE_SESS){
                                  printf("control message received: leave\n");
@@ -233,3 +250,5 @@ int main(int argc, char *argv[])
     
     return 0;
 }
+
+

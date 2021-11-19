@@ -82,7 +82,7 @@ int main(/*int argc,char *argv[]*/){
         }
         else if((strncmp(msg, "/joinsession", 12)) == 0){
             joinSession(msg);
-            printf("join session call: \n");
+            printf("join session: \n");
         }
         else if((strncmp(msg, "/leavesession", 13)) == 0){
             leaveSession();
@@ -126,7 +126,7 @@ void messageToString(unsigned int type, /*unsigned int size,*/ unsigned char* so
     char message_string[1000]; 
 	bzero(message_string, 1000);
 
-	printf("type: %u\n size: %u\nsource: %s\ndata: %s\n", send_message.type, send_message.size, send_message.source, send_message.data);
+	printf("type: %u\nsize: %u\nsource: %s\ndata: %s\n", send_message.type, send_message.size, send_message.source, send_message.data);
 
 
     int message_string_temp = sprintf(message_string, "%u:%u:%s:%s",send_message.type, send_message.size, send_message.source, send_message.data);
