@@ -35,8 +35,9 @@ void leaveSession();
 void createSession(char* new_session_id); 
 void list(); 
 void quit(); 
-void messageToString(unsigned int type/*, unsigned int size*/, unsigned char source[MAX_NAME], unsigned char data[MAX_DATA], char* string);
+void messageToString(unsigned int type/*, unsigned int size*/, unsigned char source[MAX_NAME], unsigned char data[MAX_DATA]/*, char* string*/);
 
+char client_name[100] = {'\0'};
 int socket_fd;
 message send_message;
 struct sockaddr_in serveraddress;
@@ -53,23 +54,18 @@ void *recvmg(void *my_sock)
 	}
 }
 
-int main(int argc,char *argv[]){
+int main(/*int argc,char *argv[]*/){
 	pthread_t recvt;
 	int len;
 	
 	char send_msg[500];
 	struct sockaddr_in ServerIp;
-	char client_name[100];
-	strcpy(client_name, argv[1]);
+	
+	/*strcpy(client_name, argv[1]);*/
 
     // establish connection with server first, then can create threads for listening
 	
-	/*ServerIp.sin_port = htons(4999);
-	ServerIp.sin_family = AF_INET;
-	ServerIp.sin_addr.s_addr = inet_addr("128.100.13.240");
-	if( (connect( sock ,(struct sockaddr *)&ServerIp,sizeof(ServerIp))) == -1 )
-		printf("n connection to socket failed n");
-	*/
+	
 	//creating a client thread which is always waiting for a message
 	// pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
 	
@@ -118,7 +114,7 @@ int main(int argc,char *argv[]){
 	return 0;
 }
 	
-void messageToString(unsigned int type, /*unsigned int size,*/ unsigned char* source, unsigned char* data, char* string){
+void messageToString(unsigned int type, /*unsigned int size,*/ unsigned char* source, unsigned char* data/*, char* string*/){
 	pthread_mutex_lock(&mutex);
 
 	send_message.type = type; 
@@ -170,6 +166,7 @@ void login(char* buffer){
         }
     }
     username = newString[1]; 
+    strcpy(client_name, username); 
     password = newString[2]; 
     server_ip = newString[3]; 
     server_port = newString[4]; 
@@ -189,39 +186,8 @@ void login(char* buffer){
         exit(1);
     }
 
-    // connected = true;
-	/*
-    send_message.type = LOGIN; 
-    bzero(send_message.data, sizeof(send_message.data));
-    strcpy(send_message.data,password); 
-    send_message.size = sizeof(password); 
-    bzero(send_message.source, sizeof(send_message.source));
-    strcpy(send_message.source,username); 
-    char message_string[1000]; 
-
-    printf("type: %u\n size: %u\nsource: %s\ndata: %s\n", send_message.type, send_message.size, send_message.source, send_message.data);
-
-
-    int message_string_temp = sprintf(message_string, "%u:%u:%s:%s",send_message.type, send_message.size, send_message.source, send_message.data);
-    //memcpy(message_string, send_message.filedata, packetToSend.size);
-    printf("message: %s\n",message_string);
-	
 	char* message_string;
-	
-	printf("message: %s\n",message_string);
-    ssize_t send_return; 
-    //send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
-    send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
-    if(send_return < 0){
-        printf("oof \n");
-    }
-	*/
-	char* message_string;
-	messageToString(LOGIN, username, password, message_string);
-    /*printf("username: %s\n", username); 
-    printf("password: %s\n", password); 
-    printf("server_ip: %s\n", server_ip); 
-    printf("server_port: %s\n", server_port); */
+	messageToString(LOGIN, username, password/*, message_string*/);
     bzero(buffer, sizeof(buffer)); 
 }
 
@@ -249,6 +215,7 @@ void joinSession(char* buffer){
 
     joinSessionID = newString[1]; 
     printf("session ID: %s\n", joinSessionID); 
+    messageToString(JOIN, client_name, joinSessionID); 
 
 
 }

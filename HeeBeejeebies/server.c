@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include "message.h"
+#include <stdbool.h>
 
 #define LOGIN 15 
 #define LO_ACK 20 
@@ -32,7 +33,14 @@ typedef struct client_info{
     unsigned char password[MAX_NAME]; // username as visible to other users in the chat room
     unsigned char current_session[MAX_NAME]; // username as visible to other users in the chat room
     int fd; 
+    bool logged_in; 
 } client_info; 
+
+//Create a pointer to structs array, and initialize each element to null pointer 
+//When new client connects, intitialize struct with client info 
+// add the struct to the pointer array 
+
+client_info* g_masterClientList[100] = {NULL}; 
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -173,6 +181,18 @@ int main(int argc, char *argv[])
                             strcpy(buf_cpy, buf);
                             recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
                             if (recv_message.type == LOGIN){
+                                client_info current_client; 
+                                strcpy(current_client.username, recv_message.source); 
+                                strcpy(current_client.password,recv_message.data); 
+                                current_client.logged_in = true; 
+                                int i = 0; 
+                                do{
+                                    if(g_masterClientList[i] == NULL){
+                                        g_masterClientList[i] = &current_client; 
+                                        break; 
+                                    }
+                                    i++; 
+                                }while(1); 
                                 printf("control message received: login\n");
                             }
                             /*else if (recv_message.type == LOGOUT){
