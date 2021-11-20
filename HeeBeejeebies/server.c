@@ -36,8 +36,8 @@ typedef struct client_info{
     int fd; 
     bool logged_in; 
 } client_info; 
+
 void clear_recv_message(message* recv_message);
-void login_command(message message_recvd, int fdnum); 
 //Create a pointer to structs array, and initialize each element to null pointer 
 //When new client connects, intitialize struct with client info 
 // add the struct to the pointer array 
@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
         printf("Enter in the following format: server <port number> \nExiting program.\n");   
         exit(0);   // https://stackoverflow.com/questions/9944785/what-is-the-difference-between-exit0-and-exit1-in-c/9944875
     }
+
 
     fd_set master;    // master file descriptor list
     fd_set read_fds;  // temp file descriptor list for select()
@@ -152,18 +153,9 @@ int main(int argc, char *argv[])
                 if (i == listener) {
                     // handle new connections
                     addrlen = sizeof remoteaddr;
-					newfd = accept(listener, (struct sockaddr *)&remoteaddr, &addrlen);
-                    nbytes = recv(i, buf, sizeof buf, 0);
-                    char buf_cpy[MESSAGE_SIZE] = {'\0'};
-                            message recv_message;
-                            strcpy(buf_cpy, buf);
-                            printf("buffer: %s \n", buf);
-                            //clear_recv_message(&recv_message);
-                            recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
-                            
-                            if (recv_message.type == LOGIN){
-                                login_command(recv_message, i);
-                            }
+					newfd = accept(listener,
+						(struct sockaddr *)&remoteaddr,
+						&addrlen);
 
 					if (newfd == -1) {
                         perror("accept");
@@ -174,7 +166,10 @@ int main(int argc, char *argv[])
                         }
                         printf("selectserver: new connection from %s on "
                             "socket %d\n",
-							inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr*)&remoteaddr),remoteIP, INET6_ADDRSTRLEN), newfd);
+							inet_ntop(remoteaddr.ss_family,
+								get_in_addr((struct sockaddr*)&remoteaddr),
+								remoteIP, INET6_ADDRSTRLEN),
+							newfd);
                     }
                 } else {
                     // handle data from a client
@@ -186,99 +181,20 @@ int main(int argc, char *argv[])
                         } else {
                             perror("recv");
                         }
-                        
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         // we got some data from a client
-                        printf("fdmax: %d\n", fdmax); 
-                        char buf_cpy[MESSAGE_SIZE] = {'\0'};
-                            message recv_message;
-                            strcpy(buf_cpy, buf);
-                            printf("buffer: %s \n", buf);
-                            //clear_recv_message(&recv_message);
-                            recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
-                            
-                            if (recv_message.type == LOGIN){
-                                login_command(recv_message, i);
-                            }
                         for(j = 0; j <= fdmax; j++) {
-                            char buf_cpy[MESSAGE_SIZE] = {'\0'};
-                            message recv_message;
-                            strcpy(buf_cpy, buf);
-                            clear_recv_message(&recv_message);
-                            recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
-                            /*if (recv_message.type == LOGIN){
-                                login_command(recv_message, i);
-                            }*/
-                            /*else if (recv_message.type == LOGOUT){
-                                 printf("control message received: logout\n");
-                            }*/
-                            /*else*/ if (recv_message.type == JOIN){
-                                // read info from client --> what session do they want to join
-                                // check through existing clients to see if anyone is in that session (i.e. the session exists)
-                                // if session exists, update sessionID of current client to be the sessionID
-                                printf("control message received: join\n");
-                                int i = 0;
-                                bool joinedSession = false;
-                                for(int i = 0 ; (i<MAX_USERS) && (g_masterClientList[i] != NULL) && (!joinedSession); i++){ 
-                                    client_info* current_client = g_masterClientList[i];
-                                    if (strcmp(current_client->username, recv_message.source) == 0){
-                                        strcpy(current_client->current_session,recv_message.data);
-                                        printf("Current Session: %s\nReceived message data: %s",current_client->current_session, recv_message.data); 
-                                        joinedSession = true;
-                                        printf("joined session or something idk\n");
-                                    } 
-
-                                }
-                                if (!joinedSession){
-                                    printf("failed to join session. \n");
-                                }
-                                
-                            }
-                            else if (recv_message.type == LEAVE_SESS){
-                                 printf("control message received: leave\n");
-                            }
-                            else if (recv_message.type == NEW_SESS){
-                                // read in info from the client --> what session do they want to create
-                                // check through existing sessions
-                                // if session does not exist, make the sessionID of the current client to be the new session 
-                                // else, send NACK that session cannot be created since it already exists
-                                printf("control message received: create\n");
-                                printMasterClientList();
-                                // message recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
-                                if(!sessionExists(recv_message.data)){
-                                    for(i=0; (i<MAX_USERS) && (g_masterClientList[i] != NULL); i++){
-                                        client_info* current_client = g_masterClientList[i];
-                                        if(strcmp(current_client->username, recv_message.source) == 0){
-                                            strcpy(current_client->current_session,recv_message.data); 
-                                            break; 
-                                        }
+                            // send to everyone!
+                            if (FD_ISSET(j, &master)) {
+                                // except the listener and ourselves
+                                if (j != listener && j != i) {
+                                    if (send(j, buf, nbytes, 0) == -1) {
+                                        perror("send");
                                     }
                                 }
-                                else{
-                                    // send a nack or something idk
-                                }
-                                printf("************** printing the list afterwards *****************\n");
-                                printMasterClientList();
                             }
-                            else if (recv_message.type == QUERY){
-                                 printf("control message received: list\n");
-                            }
-                            else if (recv_message.type == EXIT){
-                                 printf("control message received: quit\n");
-                            }
-                            else{
-                                // send to everyone!
-                                if (FD_ISSET(j, &master)) {
-                                    // except the listener and ourselves
-                                    if (j != listener && j != i) {
-                                        if (send(j, buf, nbytes, 0) == -1) {
-                                            perror("send");
-                                        }
-                                    }
-                                }
-                            }  
                         }
                     }
                 } // END handle data from client
@@ -286,9 +202,12 @@ int main(int argc, char *argv[])
         } // END looping through file descriptors
     } // END for(;;)--and you thought it would never end!
     
-    return 0;
+    return 0; 
 }
 
+
+
+/************************************* Helper Functions **************************************/
 bool sessionExists(char* sessionID){
     printf("checking if session exists\n");
     for(int i=0; i<MAX_USERS; i++){
@@ -331,27 +250,3 @@ void printMasterClientList(){
     }
 }
 
-void login_command(message recv_message, int fdnum){
-    printf("control message received: login\n");
-    client_info current_client; 
-    strcpy(current_client.username, recv_message.source); 
-    strcpy(current_client.password,recv_message.data); 
-    current_client.logged_in = true; 
-    strcpy(current_client.current_session, "waiting_room"); 
-    current_client.fd = fdnum; 
-    int i = 0; 
-    do{
-        if(g_masterClientList[i] == NULL){
-            g_masterClientList[i] = &current_client; 
-            break; 
-        }
-        else if (strcmp(g_masterClientList[i]->username, current_client.username) == 0){
-            printf("client %s already exists.\n", current_client.username);
-            break;
-        }
-        i++; 
-    }while(1); 
-    
-    printMasterClientList(); 
-
-}
