@@ -37,6 +37,8 @@ void list();
 void quit(); 
 void messageToString(unsigned int type/*, unsigned int size*/, unsigned char source[MAX_NAME], unsigned char data[MAX_DATA]/*, char* string*/);
 
+void clear_message();
+
 char client_name[100] = {'\0'};
 int socket_fd;
 message send_message;
@@ -77,33 +79,43 @@ int main(/*int argc,char *argv[]*/){
 			pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
         }
         else if((strncmp(msg, "/logout", 7)) == 0){
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             logout();
             printf("logout: \n");
         }
         else if((strncmp(msg, "/joinsession", 12)) == 0){
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             joinSession(msg);
             printf("join session: \n");
+            
         }
         else if((strncmp(msg, "/leavesession", 13)) == 0){
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             leaveSession();
             printf("leave session: \n");
+            
         }
         else if((strncmp(msg, "/list", 5)) == 0){
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             list();
             printf("leave session: \n");
         }
         else if((strncmp(msg, "/quit", 5)) == 0){
             quit();
             printf("quit session: \n");
+            close(socket_fd);
+            return 0;
         }
         else if((strncmp(msg, "/createsession", 14)) == 0){
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             createSession(msg);
-            printf("quit session: \n");
+            printf("create session: \n");
         }
 		strcpy(send_msg,client_name);
 		strcat(send_msg,": ");
 		strcat(send_msg,msg);
 		len = write(socket_fd,send_msg,strlen(send_msg));
+        
 		if(len < 0) 
 			printf("n message not sent n\n");
 	}
@@ -139,6 +151,7 @@ void messageToString(unsigned int type, /*unsigned int size,*/ unsigned char* so
     if(send_return < 0){
         printf("oof \n");
     }
+    bzero(message_string, 1000);
 	//string = message_string;
 	pthread_mutex_unlock(&mutex);
 
@@ -189,6 +202,7 @@ void login(char* buffer){
 	char* message_string;
 	messageToString(LOGIN, username, password/*, message_string*/);
     bzero(buffer, sizeof(buffer)); 
+    clear_message(); 
 }
 
 // implement logout
@@ -216,7 +230,7 @@ void joinSession(char* buffer){
     joinSessionID = newString[1]; 
     printf("session ID: %s\n", joinSessionID); 
     messageToString(JOIN, client_name, joinSessionID); 
-
+    clear_message();
 
 }
 
@@ -251,5 +265,13 @@ void createSession(char* buffer){
 
     createSessionID = newString[1]; 
     printf("session ID: %s\n", createSessionID); 
+    messageToString(NEW_SESS, client_name, createSessionID);
+    clear_message();
+}
 
+void clear_message(){
+    send_message.type = -1;
+    // size can stay as max data 
+    bzero(send_message.data, MAX_DATA);
+    // don't want to clear the source because it is the username
 }

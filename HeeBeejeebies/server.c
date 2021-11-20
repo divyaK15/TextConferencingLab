@@ -36,13 +36,14 @@ typedef struct client_info{
     int fd; 
     bool logged_in; 
 } client_info; 
-
+void clear_recv_message(message* recv_message);
 //Create a pointer to structs array, and initialize each element to null pointer 
 //When new client connects, intitialize struct with client info 
 // add the struct to the pointer array 
 
 client_info* g_masterClientList[MAX_USERS] = {NULL}; 
 bool sessionExists(); 
+void printMasterClientList();
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -181,6 +182,7 @@ int main(int argc, char *argv[])
                             char buf_cpy[MESSAGE_SIZE] = {'\0'};
                             message recv_message;
                             strcpy(buf_cpy, buf);
+                            clear_recv_message(&recv_message);
                             recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
                             if (recv_message.type == LOGIN){
                                 client_info current_client; 
@@ -201,6 +203,9 @@ int main(int argc, char *argv[])
                                  printf("control message received: logout\n");
                             }*/
                             else if (recv_message.type == JOIN){
+                                // read info from client --> what session do they want to join
+                                // check through existing clients to see if anyone is in that session (i.e. the session exists)
+                                // if session exists, update sessionID of current client to be the sessionID
                                 printf("control message received: join\n");
                                 int i = 0;
                                 bool joinedSession = false;
@@ -223,15 +228,27 @@ int main(int argc, char *argv[])
                                  printf("control message received: leave\n");
                             }
                             else if (recv_message.type == NEW_SESS){
+                                // read in info from the client --> what session do they want to create
+                                // check through existing sessions
+                                // if session does not exist, make the sessionID of the current client to be the new session 
+                                // else, send NACK that session cannot be created since it already exists
+                                printf("control message received: create\n");
+                                printMasterClientList();
+                                // message recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
                                 if(!sessionExists(recv_message.data)){
                                     for(i=0; (i<MAX_USERS) && (g_masterClientList[i] != NULL); i++){
-                                        if(strcmp(g_masterClientList[i]->username, recv_message.source) == 0){
-                                            strcpy(g_masterClientList[i]->current_session,recv_message.data); 
+                                        client_info* current_client = g_masterClientList[i];
+                                        if(strcmp(current_client->username, recv_message.source) == 0){
+                                            strcpy(current_client->current_session,recv_message.data); 
                                             break; 
                                         }
                                     }
                                 }
-                                 printf("control message received: create\n");
+                                else{
+                                    // send a nack or something idk
+                                }
+                                printf("************** printing the list afterwards *****************\n");
+                                printMasterClientList();
                             }
                             else if (recv_message.type == QUERY){
                                  printf("control message received: list\n");
@@ -261,16 +278,20 @@ int main(int argc, char *argv[])
 }
 
 bool sessionExists(char* sessionID){
-    for(int i=0; i<=MAX_USERS; i++){
-        if(g_masterClientList[i] != NULL){
-            if(strcmp(g_masterClientList[i]->current_session,sessionID) == 0){
-                printf("Session %s exists \n", g_masterClientList[i]->current_session); 
+    printf("checking if session exists\n");
+    for(int i=0; i<MAX_USERS; i++){
+        client_info* current_client = g_masterClientList[i];
+        if(current_client != NULL){
+            //client_info* current_client = g_masterClientList[i];
+            if(strcmp(current_client->current_session,sessionID) == 0){
+                printf("Current client is %s\n", current_client->username);
+                printf("Session %s exists.\n", sessionID); 
                 return true; 
             }
         }
         else{
             // session has not come up and we have iterated through all non-Null entries 
-            printf("Session %s does not exists \n",g_masterClientList[i]->current_session); 
+            printf("Session %s does not exist.\n", sessionID); 
             return false; 
         }
     }
@@ -278,4 +299,22 @@ bool sessionExists(char* sessionID){
 
 }
 
+void clear_recv_message(message* recv_message){
+    recv_message->type = -1;
+    recv_message->size = MAX_DATA;
+    bzero(recv_message->source, MAX_NAME);
+    bzero(recv_message->data, MAX_DATA);
+}
 
+void printMasterClientList(){
+    int i = 0;
+    for (i = 0; (i < MAX_USERS) && (g_masterClientList[i] != NULL); ++i){
+        client_info* current_client = g_masterClientList[i];
+        printf("Client #%d\n", i);
+        printf("username: %s\n", current_client->username);
+        printf("password: %s\n", current_client->password);
+        printf("current session: %s\n", current_client->current_session);
+        printf("file descriptor: %d\n", current_client->fd);
+        printf("logged in? %d\n",current_client->logged_in);
+    }
+}
