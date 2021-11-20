@@ -42,6 +42,7 @@ typedef struct client_info{
 // add the struct to the pointer array 
 
 client_info* g_masterClientList[MAX_USERS] = {NULL}; 
+bool sessionExists(); 
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -203,7 +204,7 @@ int main(int argc, char *argv[])
                                 printf("control message received: join\n");
                                 int i = 0;
                                 bool joinedSession = false;
-                                for(i = 0 ; (i<MAX_USERS) && (g_masterClientList[i] != NULL) && (!joinedSession); i++){ 
+                                for(int i = 0 ; (i<MAX_USERS) && (g_masterClientList[i] != NULL) && (!joinedSession); i++){ 
                                     client_info* current_client = g_masterClientList[i];
                                     if (strcmp(current_client->username, recv_message.source) == 0){
                                         strcpy(current_client->current_session,recv_message.data);
@@ -222,6 +223,14 @@ int main(int argc, char *argv[])
                                  printf("control message received: leave\n");
                             }
                             else if (recv_message.type == NEW_SESS){
+                                if(!sessionExists(recv_message.data)){
+                                    for(i=0; (i<MAX_USERS) && (g_masterClientList[i] != NULL); i++){
+                                        if(strcmp(g_masterClientList[i]->username, recv_message.source) == 0){
+                                            strcpy(g_masterClientList[i]->current_session,recv_message.data); 
+                                            break; 
+                                        }
+                                    }
+                                }
                                  printf("control message received: create\n");
                             }
                             else if (recv_message.type == QUERY){
@@ -249,6 +258,24 @@ int main(int argc, char *argv[])
     } // END for(;;)--and you thought it would never end!
     
     return 0;
+}
+
+bool sessionExists(char* sessionID){
+    for(int i=0; i<=MAX_USERS; i++){
+        if(g_masterClientList[i] != NULL){
+            if(strcmp(g_masterClientList[i]->current_session,sessionID) == 0){
+                printf("Session %s exists \n", g_masterClientList[i]->current_session); 
+                return true; 
+            }
+        }
+        else{
+            // session has not come up and we have iterated through all non-Null entries 
+            printf("Session %s does not exists \n",g_masterClientList[i]->current_session); 
+            return false; 
+        }
+    }
+    return false; 
+
 }
 
 
