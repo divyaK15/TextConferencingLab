@@ -37,6 +37,7 @@ typedef struct client_info{
     bool logged_in; 
 } client_info; 
 void clear_recv_message(message* recv_message);
+void login_command(message message_recvd, int fdnum); 
 //Create a pointer to structs array, and initialize each element to null pointer 
 //When new client connects, intitialize struct with client info 
 // add the struct to the pointer array 
@@ -152,6 +153,17 @@ int main(int argc, char *argv[])
                     // handle new connections
                     addrlen = sizeof remoteaddr;
 					newfd = accept(listener, (struct sockaddr *)&remoteaddr, &addrlen);
+                    nbytes = recv(i, buf, sizeof buf, 0);
+                    char buf_cpy[MESSAGE_SIZE] = {'\0'};
+                            message recv_message;
+                            strcpy(buf_cpy, buf);
+                            printf("buffer: %s \n", buf);
+                            //clear_recv_message(&recv_message);
+                            recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
+                            
+                            if (recv_message.type == LOGIN){
+                                login_command(recv_message, i);
+                            }
 
 					if (newfd == -1) {
                         perror("accept");
@@ -174,41 +186,35 @@ int main(int argc, char *argv[])
                         } else {
                             perror("recv");
                         }
+                        
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         // we got some data from a client
+                        printf("fdmax: %d\n", fdmax); 
+                        char buf_cpy[MESSAGE_SIZE] = {'\0'};
+                            message recv_message;
+                            strcpy(buf_cpy, buf);
+                            printf("buffer: %s \n", buf);
+                            //clear_recv_message(&recv_message);
+                            recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
+                            
+                            if (recv_message.type == LOGIN){
+                                login_command(recv_message, i);
+                            }
                         for(j = 0; j <= fdmax; j++) {
                             char buf_cpy[MESSAGE_SIZE] = {'\0'};
                             message recv_message;
                             strcpy(buf_cpy, buf);
                             clear_recv_message(&recv_message);
                             recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
-                            if (recv_message.type == LOGIN){
-                                printf("control message received: login\n");
-                                client_info current_client; 
-                                strcpy(current_client.username, recv_message.source); 
-                                strcpy(current_client.password,recv_message.data); 
-                                current_client.logged_in = true; 
-                                int i = 0; 
-                                do{
-                                    if(g_masterClientList[i] == NULL){
-                                        g_masterClientList[i] = &current_client; 
-                                        break; 
-                                    }
-                                    else if (strcmp(g_masterClientList[i]->username, current_client.username) == 0){
-                                        printf("client %s already exists.\n", current_client.username);
-                                        break;
-                                    }
-                                    i++; 
-                                }while(1); 
-                                
-                                printMasterClientList(); 
-                            }
+                            /*if (recv_message.type == LOGIN){
+                                login_command(recv_message, i);
+                            }*/
                             /*else if (recv_message.type == LOGOUT){
                                  printf("control message received: logout\n");
                             }*/
-                            else if (recv_message.type == JOIN){
+                            /*else*/ if (recv_message.type == JOIN){
                                 // read info from client --> what session do they want to join
                                 // check through existing clients to see if anyone is in that session (i.e. the session exists)
                                 // if session exists, update sessionID of current client to be the sessionID
@@ -323,4 +329,29 @@ void printMasterClientList(){
         printf("file descriptor: %d\n", current_client->fd);
         printf("logged in? %d\n",current_client->logged_in);
     }
+}
+
+void login_command(message recv_message, int fdnum){
+    printf("control message received: login\n");
+    client_info current_client; 
+    strcpy(current_client.username, recv_message.source); 
+    strcpy(current_client.password,recv_message.data); 
+    current_client.logged_in = true; 
+    strcpy(current_client.current_session, "waiting_room"); 
+    current_client.fd = fdnum; 
+    int i = 0; 
+    do{
+        if(g_masterClientList[i] == NULL){
+            g_masterClientList[i] = &current_client; 
+            break; 
+        }
+        else if (strcmp(g_masterClientList[i]->username, current_client.username) == 0){
+            printf("client %s already exists.\n", current_client.username);
+            break;
+        }
+        i++; 
+    }while(1); 
+    
+    printMasterClientList(); 
+
 }
