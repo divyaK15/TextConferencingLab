@@ -37,6 +37,8 @@ void list();
 void quit(); 
 void messageToString(unsigned int type/*, unsigned int size*/, unsigned char source[MAX_NAME], unsigned char data[MAX_DATA]/*, char* string*/);
 
+void clear_message();
+
 char client_name[100] = {'\0'};
 int socket_fd;
 message send_message;
@@ -71,34 +73,42 @@ int main(/*int argc,char *argv[]*/){
 	
 	//ready to read a message from console
     // include the different possible commands here
-	while(fgets(msg,500,stdin) > 0) {
+	while(fgets(msg,MAX_DATA,stdin) > 0) {
 		if((strncmp(msg, "/login", 6))== 0){
             login(msg); 
 			pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
         }
         else if((strncmp(msg, "/logout", 7)) == 0){
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             logout();
             printf("logout: \n");
         }
         else if((strncmp(msg, "/joinsession", 12)) == 0){
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             joinSession(msg);
             printf("join session: \n");
+            
         }
         else if((strncmp(msg, "/leavesession", 13)) == 0){
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             leaveSession();
             printf("leave session: \n");
+            
         }
         else if((strncmp(msg, "/list", 5)) == 0){
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             list();
             printf("leave session: \n");
         }
         else if((strncmp(msg, "/quit", 5)) == 0){
             quit();
             printf("quit session: \n");
+            close(socket_fd);
+            return 0;
         }
         else if((strncmp(msg, "/createsession", 14)) == 0){
             createSession(msg);
-            printf("quit session: \n");
+            printf("create session: \n");
         }
 		strcpy(send_msg,client_name);
 		strcat(send_msg,": ");
@@ -136,6 +146,7 @@ void messageToString(unsigned int type, /*unsigned int size,*/ unsigned char* so
     ssize_t send_return; 
     //send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
     send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
+    bzero(message_string, 1000);
     if(send_return < 0){
         printf("oof \n");
     }
@@ -188,7 +199,8 @@ void login(char* buffer){
 
 	char* message_string;
 	messageToString(LOGIN, username, password/*, message_string*/);
-    bzero(buffer, sizeof(buffer)); 
+    bzero(buffer, sizeof(buffer));
+    clear_message(); 
 }
 
 // implement logout
@@ -216,7 +228,6 @@ void joinSession(char* buffer){
     joinSessionID = newString[1]; 
     printf("session ID: %s\n", joinSessionID); 
     messageToString(JOIN, client_name, joinSessionID); 
-
 
 }
 
@@ -252,4 +263,12 @@ void createSession(char* buffer){
     createSessionID = newString[1]; 
     printf("session ID: %s\n", createSessionID); 
 
+}
+
+//clears the global message to send to server
+void clear_message(){
+    send_message.type = -1;
+    // size can stay as max data 
+    bzero(send_message.data, MAX_DATA);
+    // don't want to clear the source because it is the username
 }
