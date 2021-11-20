@@ -185,6 +185,7 @@ int main(int argc, char *argv[])
                             clear_recv_message(&recv_message);
                             recv_message = convertStringToMessage(buf_cpy, MESSAGE_SIZE);
                             if (recv_message.type == LOGIN){
+                                printf("control message received: login\n");
                                 client_info current_client; 
                                 strcpy(current_client.username, recv_message.source); 
                                 strcpy(current_client.password,recv_message.data); 
@@ -195,9 +196,14 @@ int main(int argc, char *argv[])
                                         g_masterClientList[i] = &current_client; 
                                         break; 
                                     }
+                                    else if (strcmp(g_masterClientList[i]->username, current_client.username) == 0){
+                                        printf("client %s already exists.\n", current_client.username);
+                                        break;
+                                    }
                                     i++; 
                                 }while(1); 
-                                printf("control message received: login\n");
+                                
+                                printMasterClientList(); 
                             }
                             /*else if (recv_message.type == LOGOUT){
                                  printf("control message received: logout\n");
