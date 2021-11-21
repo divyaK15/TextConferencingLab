@@ -44,7 +44,7 @@ typedef struct client_info{
 
 client_info** g_masterClientList; 
 // handling user commands
-void login_command(message recv_message, int fdnum);
+void login_command(message* recv_message, int fdnum);
 bool join_command(message* recv_message);
 // helper functions 
 bool sessionExists(); 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
     fdmax = listener; // so far, it's this one
 
     // for the message that we receive from the clients
-    //message recv_message;
+    message recv_message;
 
     // main loop
     for(;;) {
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         // we got some data from a client
-                        message recv_message;
+                        // message recv_message;
                         clear_recv_message(&recv_message);
                         recv_message = convertStringToMessage(buf, MESSAGE_SIZE);
                         printf("Printing the list before checking commands.\n");
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
                         if (recv_message.type == LOGIN){
                             printf("login request received.\n");
                             printf("Socket ID: %d\n",i);
-                            login_command(recv_message, i);
+                            login_command(&recv_message, i);
                             printf("Printing the list after returning.\n");
                             printMasterClientList();
                         }
@@ -241,13 +241,14 @@ int main(int argc, char *argv[])
 /************************************ Command Functions *********************************************/
 
 
-void login_command(message recv_message, int fdnum){
+void login_command(message* recv_message, int fdnum){
     printf("Printing the list before inserting.\n");
     printMasterClientList();
+    print_recv_message(recv_message);
     // first checking the client info based on the control message
     client_info* current_client = malloc(sizeof(client_info));
-    strcpy(current_client->username, recv_message.source);
-    strcpy(current_client->password, recv_message.data); 
+    strcpy(current_client->username, recv_message->source);
+    strcpy(current_client->password, recv_message->data); 
     current_client->logged_in = true; 
     strcpy(current_client->current_session, "waiting_room"); // default session is the waiting room
     current_client->fd = fdnum; 
@@ -278,7 +279,7 @@ void login_command(message recv_message, int fdnum){
     }while(i < MAX_USERS); 
 
     free(current_client);
-    // clear_recv_message(recv_message);
+    clear_recv_message(recv_message);
     printf("Printing the list after inserting.\n");
     printMasterClientList(); 
 }
