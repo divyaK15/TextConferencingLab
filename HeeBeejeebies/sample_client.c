@@ -28,6 +28,8 @@
 #define OU_ACK 85 
 
 char msg[500] = {'\0'};
+char servermsg[50] = {'\0'}; 
+int* serverreply; 
 void login(char* login_info);
 void logout();
 void joinSession(char* session_id);
@@ -77,58 +79,126 @@ int main(/*int argc,char *argv[]*/){
     //check if user is logged in 
     bool logged_in = false; 
 	while(fgets(msg,500,stdin) > 0) {
+
+        //login
+
 		if((strncmp(msg, "/login", 6))== 0){
             login(msg); 
+            ssize_t login_response; 
+           /* login_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
+            if(login_response < 0){
+                perror("Error didnt receive login. \n"); 
+            }
+            else{
+                if(*serverreply == LO_NAK){
+                    printf("Unable to log in. \n"); 
+                }
+                else if(*serverreply == LO_ACK){
+                    printf("Login successful. \n"); 
+                }
+            }*/
             logged_in = true; 
 			pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
         }
+
+        //logout 
+
         else if((strncmp(msg, "/logout", 7)) == 0){
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             logout();
             printf("logout: \n");
         }
+
+        //join session 
+
         else if((strncmp(msg, "/joinsession", 12)) == 0){
             if(!logged_in){
                 printf("Please login first. \n"); 
             }
             else{
+                printf("join session: \n");
+                /*ssize_t join_response; 
+                join_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
+                if(join_response < 0){
+                    perror("Error didnt receive join. \n"); 
+                }
+                else{
+                    if(*serverreply == JN_NAK){
+                        printf("Unable to join session. \n"); 
+                    }
+                    else if(*serverreply == JN_ACK){
+                        printf("Join session successful. \n"); 
+                    }
+                }*/
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             joinSession(msg);
-            printf("join session: \n");
             }
             
         }
+
+        //leave session 
+
         else if((strncmp(msg, "/leavesession", 13)) == 0){
             if(!logged_in){
                 printf("Please login first. \n"); 
             }
             else{
+
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             leaveSession();
             printf("leave session: \n");
             }
             
         }
+
+        //query 
+
         else if((strncmp(msg, "/list", 5)) == 0){
             if(!logged_in){
                 printf("Please login first. \n"); 
             }
             else{
+                /*ssize_t query_response; 
+                query_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
+                if(query_response < 0){
+                    perror("Error didnt receive query. \n"); 
+                }
+                else{
+                    if(*serverreply == JN_ACK){
+                        printf("Query successful. \n"); 
+                    }
+                }*/
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             list();
             printf("leave session: \n");
             }
         }
+
+        //quit
+
         else if((strncmp(msg, "/quit", 5)) == 0){
             printf("quit session: \n");
             close(socket_fd);
             return 0;
         }
+
+        //create new session 
+
         else if((strncmp(msg, "/createsession", 14)) == 0){
             if(!logged_in){
                 printf("Please login first. \n"); 
             }
             else{
+                /*ssize_t create_response;
+                create_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
+                if(create_response < 0){
+                    perror("Error didnt receive query. \n"); 
+                }
+                else{
+                    if(*serverreply == NS_ACK){
+                        printf("Query successful. \n"); 
+                    }
+                }*/
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             createSession(msg);
             printf("create session: \n");
