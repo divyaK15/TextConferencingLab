@@ -73,9 +73,13 @@ int main(/*int argc,char *argv[]*/){
 	
 	//ready to read a message from console
     // include the different possible commands here
+    
+    //check if user is logged in 
+    bool logged_in = false; 
 	while(fgets(msg,500,stdin) > 0) {
 		if((strncmp(msg, "/login", 6))== 0){
             login(msg); 
+            logged_in = true; 
 			pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
         }
         else if((strncmp(msg, "/logout", 7)) == 0){
@@ -84,21 +88,36 @@ int main(/*int argc,char *argv[]*/){
             printf("logout: \n");
         }
         else if((strncmp(msg, "/joinsession", 12)) == 0){
+            if(!logged_in){
+                printf("Please login first. \n"); 
+            }
+            else{
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             joinSession(msg);
             printf("join session: \n");
+            }
             
         }
         else if((strncmp(msg, "/leavesession", 13)) == 0){
+            if(!logged_in){
+                printf("Please login first. \n"); 
+            }
+            else{
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             leaveSession();
             printf("leave session: \n");
+            }
             
         }
         else if((strncmp(msg, "/list", 5)) == 0){
+            if(!logged_in){
+                printf("Please login first. \n"); 
+            }
+            else{
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             list();
             printf("leave session: \n");
+            }
         }
         else if((strncmp(msg, "/quit", 5)) == 0){
             quit();
@@ -107,9 +126,14 @@ int main(/*int argc,char *argv[]*/){
             return 0;
         }
         else if((strncmp(msg, "/createsession", 14)) == 0){
+            if(!logged_in){
+                printf("Please login first. \n"); 
+            }
+            else{
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             createSession(msg);
             printf("create session: \n");
+            }
         }
         else {
             strcpy(send_msg,client_name);
@@ -213,6 +237,8 @@ void login(char* buffer){
 
 // implement logout
 void logout(){
+    //send logout control message and set boolean false on server side 
+    //logout, username, NULL 
     close(socket_fd);
 }
 
@@ -241,15 +267,20 @@ void joinSession(char* buffer){
 }
 
 void leaveSession(){
-
+    printf("%s is leaving session. \n", client_name); 
+    messageToString(LEAVE_SESS, client_name, ""); 
+    clear_message();
 }
 
 void list(){
-
+    //defined value, rest is NULL 
+    printf("Listing users and avaialable sesisons: \n"); 
+    messageToString(QUERY, "", ""); 
+    clear_message();
 }
 
 void quit(){
-
+    return 0; 
 }
 
 void createSession(char* buffer){
