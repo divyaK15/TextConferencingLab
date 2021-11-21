@@ -156,6 +156,7 @@ int main(int argc, char *argv[])
 
         // run through the existing connections looking for data to read
         for(i = 0; i <= fdmax; i++) {
+            bzero(buf, sizeof buf);
             if (FD_ISSET(i, &read_fds)) { // we got one!!
                 if (i == listener) {
                     // handle new connections
@@ -194,29 +195,38 @@ int main(int argc, char *argv[])
                         // we got some data from a client
                         clear_recv_message(&recv_message);
                         recv_message = convertStringToMessage(buf, MESSAGE_SIZE);
-
+                        
+                
                         if (recv_message.type == LOGIN){
                             printf("login request received.\n");
+                            printf("Socket ID: %d\n",i);
                             login_command(&recv_message, i);
                         }
                         else if (recv_message.type == JOIN){
                             printf("join request received.\n");
                             join_command(&recv_message);
                         }
-                        for(j = 0; j <= fdmax; j++) {
-                            // send to everyone!
-                            if (FD_ISSET(j, &master)) {
-                                // except the listener and ourselves
-                                if (j != listener && j != i) {
-                                    if (send(j, buf, nbytes, 0) == -1) {
-                                        perror("send");
+                        // logic for rest of the commands here
+                        else {
+                            // just basic text that needs to be sent out
+                            for(j = 0; j <= fdmax; j++) {
+                                // send to everyone!
+                                if (FD_ISSET(j, &master)) {
+                                    // except the listener and ourselves
+                                    if (j != listener && j != i) {
+                                        if (send(j, buf, nbytes, 0) == -1) {
+                                            perror("send");
+                                        }
                                     }
                                 }
                             }
                         }
+                        bzero(buf, sizeof buf);
                     }
                 } // END handle data from client
+                bzero(buf, sizeof buf);
             } // END got new incoming connection
+            bzero(buf, sizeof buf);
         } // END looping through file descriptors
     } // END for(;;)--and you thought it would never end!
     
@@ -259,12 +269,14 @@ void printMasterClientList(){
     int i = 0;
     for (i = 0; ((i < MAX_USERS) && (g_masterClientList[i] != NULL)); ++i){
         client_info* current_client = g_masterClientList[i];
+        
         printf("Client #%d\n", i);
         printf("username: %s\n", current_client->username);
         printf("password: %s\n", current_client->password);
         printf("current session: %s\n", current_client->current_session);
         printf("file descriptor: %d\n", current_client->fd);
         printf("logged in? %d\n",current_client->logged_in);
+        printf("\n");
     }
 }
 
@@ -278,22 +290,40 @@ void login_command(message* recv_message, int fdnum){
     current_client.fd = fdnum; 
 
     // insert some logic here to authorize the user
-
+    
     int i = 0; 
+
     do{
         // adding the client to the master list at the first available null entry
         if(g_masterClientList[i] == NULL){
             g_masterClientList[i] = &current_client; 
+            printf("inserted new client %s\n",current_client.username);
             break; 
         }
-        // if the client name (which should be unique) is already in the global, make sure it's logged in == true
+        // if the client name (which should be unique) is already in the global, make sure it's logged in = true
         else if (strcmp(g_masterClientList[i]->username, current_client.username) == 0){
             g_masterClientList[i]->logged_in = true;
+            current_client.fd = fdnum; 
             printf("client %s already exists.\n", current_client.username);
             break;
         }
         i++; 
-    }while(1); 
+    }while(i < MAX_USERS); 
+    
+    // int client = 0;
+    // for (client = 0; (client < MAX_USERS)&&(g_masterClientList[client] != NULL); ++client){
+    //     if (g_masterClientList[client] == NULL){
+    //         g_masterClientList[client] = &current_client; 
+    //         break; 
+    //     }
+    //     else if (strcmp(g_masterClientList[client]->username, current_client.username) == 0){
+    //         g_masterClientList[client]->logged_in = true;
+    //         current_client.fd = fdnum; 
+    //         printf("client %s already exists.\n", current_client.username);
+    //         break;
+    //     }
+    // }
+
     printMasterClientList(); 
 }
 

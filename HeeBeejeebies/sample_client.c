@@ -111,14 +111,19 @@ int main(/*int argc,char *argv[]*/){
             createSession(msg);
             printf("create session: \n");
         }
-		strcpy(send_msg,client_name);
-		strcat(send_msg,": ");
-		strcat(send_msg,msg);
-		len = write(socket_fd,send_msg,strlen(send_msg));
+        else {
+            strcpy(send_msg,client_name);
+            strcat(send_msg,": ");
+            strcat(send_msg,msg);
+            len = write(socket_fd,send_msg,strlen(send_msg));
+            
+            if(len < 0) 
+                printf("message not sent.\n");
+        }
+
+    }
         
-		if(len < 0) 
-			printf("n message not sent n\n");
-	}
+		
 	  
 	//thread is closed
 	pthread_join(recvt,NULL);
@@ -147,7 +152,8 @@ void messageToString(unsigned int type, /*unsigned int size,*/ unsigned char* so
 	
     ssize_t send_return; 
     //send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
-    send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
+    // send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
+    send_return = write(socket_fd,message_string,strlen(message_string));
     if(send_return < 0){
         printf("oof \n");
     }
