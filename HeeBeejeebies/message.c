@@ -33,7 +33,7 @@ message convertStringToMessage(char* msgString, int sizeOfMessage){
                 memcpy((char*)msgHeaders[0], msgString + colonPrevious, i - colonPrevious);
                 colonPrevious = colonIndex; 
                 msgStruct.type = atoi((char*)msgHeaders[0]);
-                //printf("total frag = %u\n", packetStruct.total_frag);
+                //printf("user = %u\n", packetStruct.total_frag);
             }
             else if (colonCount == 2){
                 msgHeaders[1] = malloc(sizeof(char) * (i - colonPrevious));
@@ -44,7 +44,7 @@ message convertStringToMessage(char* msgString, int sizeOfMessage){
             }
             else if (colonCount == 3){
                 msgHeaders[2] = malloc(sizeof(char) * (i - colonPrevious));
-                memcpy(msgHeaders[2], msgString + colonPrevious + 1, i - colonPrevious);
+                memcpy(msgHeaders[2], msgString + colonPrevious + 1, i - colonPrevious -1 );
                 colonPrevious = colonIndex; 
                 strcpy(msgStruct.source, msgHeaders[2]); // source is the username in this case, character array
                 //printf("size: %u \n",packetStruct.size);

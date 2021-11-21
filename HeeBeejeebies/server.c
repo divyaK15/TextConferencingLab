@@ -43,6 +43,10 @@ void clear_recv_message(message* recv_message);
 // add the struct to the pointer array 
 
 client_info* g_masterClientList[MAX_USERS] = {NULL}; 
+// handling user commands
+void login_command(message* recv_message, int fdnum);
+bool join_command(message* recv_message);
+// helper functions 
 bool sessionExists(); 
 void printMasterClientList();
 
@@ -139,6 +143,9 @@ int main(int argc, char *argv[])
     // keep track of the biggest file descriptor
     fdmax = listener; // so far, it's this one
 
+    // for the message that we receive from the clients
+    message recv_message;
+
     // main loop
     for(;;) {
         read_fds = master; // copy it
@@ -185,6 +192,17 @@ int main(int argc, char *argv[])
                         FD_CLR(i, &master); // remove from master set
                     } else {
                         // we got some data from a client
+                        clear_recv_message(&recv_message);
+                        recv_message = convertStringToMessage(buf, MESSAGE_SIZE);
+
+                        if (recv_message.type == LOGIN){
+                            printf("login request received.\n");
+                            login_command(&recv_message, i);
+                        }
+                        else if (recv_message.type == JOIN){
+                            printf("join request received.\n");
+                            join_command(&recv_message);
+                        }
                         for(j = 0; j <= fdmax; j++) {
                             // send to everyone!
                             if (FD_ISSET(j, &master)) {
@@ -239,7 +257,7 @@ void clear_recv_message(message* recv_message){
 
 void printMasterClientList(){
     int i = 0;
-    for (i = 0; (i < MAX_USERS) && (g_masterClientList[i] != NULL); ++i){
+    for (i = 0; ((i < MAX_USERS) && (g_masterClientList[i] != NULL)); ++i){
         client_info* current_client = g_masterClientList[i];
         printf("Client #%d\n", i);
         printf("username: %s\n", current_client->username);
@@ -250,3 +268,35 @@ void printMasterClientList(){
     }
 }
 
+void login_command(message* recv_message, int fdnum){
+    // first checking the client info based on the control message
+    client_info current_client; 
+    strcpy(current_client.username, recv_message->source); 
+    strcpy(current_client.password, recv_message->data); 
+    current_client.logged_in = true; 
+    strcpy(current_client.current_session, "waiting_room"); // default session is the waiting room
+    current_client.fd = fdnum; 
+
+    // insert some logic here to authorize the user
+
+    int i = 0; 
+    do{
+        // adding the client to the master list at the first available null entry
+        if(g_masterClientList[i] == NULL){
+            g_masterClientList[i] = &current_client; 
+            break; 
+        }
+        // if the client name (which should be unique) is already in the global, make sure it's logged in == true
+        else if (strcmp(g_masterClientList[i]->username, current_client.username) == 0){
+            g_masterClientList[i]->logged_in = true;
+            printf("client %s already exists.\n", current_client.username);
+            break;
+        }
+        i++; 
+    }while(1); 
+    printMasterClientList(); 
+}
+
+bool join_command(message* recv_message){
+    return true;
+}
