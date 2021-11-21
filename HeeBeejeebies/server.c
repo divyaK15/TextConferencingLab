@@ -282,12 +282,12 @@ void printMasterClientList(){
 
 void login_command(message* recv_message, int fdnum){
     // first checking the client info based on the control message
-    client_info current_client; 
-    strcpy(current_client.username, recv_message->source); 
-    strcpy(current_client.password, recv_message->data); 
-    current_client.logged_in = true; 
-    strcpy(current_client.current_session, "waiting_room"); // default session is the waiting room
-    current_client.fd = fdnum; 
+    client_info* current_client = malloc(sizeof(client_info));
+    strcpy(current_client->username, recv_message->source); 
+    strcpy(current_client->password, recv_message->data); 
+    current_client->logged_in = true; 
+    strcpy(current_client->current_session, "waiting_room"); // default session is the waiting room
+    current_client->fd = fdnum; 
 
     // insert some logic here to authorize the user
     
@@ -296,19 +296,26 @@ void login_command(message* recv_message, int fdnum){
     do{
         // adding the client to the master list at the first available null entry
         if(g_masterClientList[i] == NULL){
-            g_masterClientList[i] = &current_client; 
-            printf("inserted new client %s\n",current_client.username);
+            g_masterClientList[i] = current_client; 
+            printf("inserted new client %s at iteration %d\n",current_client->username, i);
+
             break; 
         }
         // if the client name (which should be unique) is already in the global, make sure it's logged in = true
-        else if (strcmp(g_masterClientList[i]->username, current_client.username) == 0){
+        else if (strcmp(g_masterClientList[i]->username, current_client->username) == 0){
             g_masterClientList[i]->logged_in = true;
-            current_client.fd = fdnum; 
-            printf("client %s already exists.\n", current_client.username);
+            current_client->fd = fdnum; 
+            printf("client %s already exists after %d iterations.\n", current_client->username, i);
+            printf("master client list username: %s\n", g_masterClientList[i]->username);
+
             break;
         }
         i++; 
+
     }while(i < MAX_USERS); 
+
+    free(current_client);
+    
     
     // int client = 0;
     // for (client = 0; (client < MAX_USERS)&&(g_masterClientList[client] != NULL); ++client){
