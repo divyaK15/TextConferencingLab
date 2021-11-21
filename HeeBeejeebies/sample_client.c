@@ -120,7 +120,6 @@ int main(/*int argc,char *argv[]*/){
             }
         }
         else if((strncmp(msg, "/quit", 5)) == 0){
-            quit();
             printf("quit session: \n");
             close(socket_fd);
             return 0;
@@ -279,9 +278,6 @@ void list(){
     clear_message();
 }
 
-void quit(){
-    return 0; 
-}
 
 void createSession(char* buffer){
     char* createSessionID;
