@@ -27,7 +27,7 @@
 #define MESSAGE 70 
 #define QUERY 80 
 #define OU_ACK 85 
-#define MAX_USERS 100
+
 
 typedef struct client_info{ 
     unsigned char username[MAX_NAME]; // username as visible to other users in the chat room
@@ -42,8 +42,10 @@ typedef struct client_info{
 //When new client connects, intitialize struct with client info 
 // add the struct to the pointer array 
 
-client_info** g_masterClientList; 
+static client_info* g_masterClientList[MAX_USERS]; 
+int g_numEntries = 0;
 // handling user commands
+// void login_command(message* recv_message, int fdnum, char* source, char* data);
 void login_command(message* recv_message, int fdnum);
 bool join_command(message* recv_message);
 // helper functions 
@@ -82,7 +84,8 @@ int main(int argc, char *argv[])
     struct sockaddr_storage remoteaddr; // client address
     socklen_t addrlen;
 
-    char buf[256];    // buffer for client data
+    char buf[500];    // buffer for client data
+    char buf_cpy[500];
     int nbytes;
 
 	char remoteIP[INET_ADDRSTRLEN]; // this used to be INET6_ADDSTRLEN
@@ -160,6 +163,7 @@ int main(int argc, char *argv[])
         // run through the existing connections looking for data to read
         for(i = 0; i <= fdmax; i++) {
             bzero(buf, sizeof buf);
+            
             if (FD_ISSET(i, &read_fds)) { // we got one!!
                 if (i == listener) {
                     // handle new connections
@@ -183,6 +187,8 @@ int main(int argc, char *argv[])
 							newfd);
                     }
                 } else {
+                    printf("Printing the list before receiving new data:\n");
+                    printMasterClientList();
                     // handle data from a client
                     if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
                         // got error or connection closed by client
@@ -198,16 +204,24 @@ int main(int argc, char *argv[])
                         // we got some data from a client
                         // message recv_message;
                         clear_recv_message(&recv_message);
-                        recv_message = convertStringToMessage(buf, MESSAGE_SIZE);
+                        // bzero(buf_cpy, sizeof buf_cpy);
+                        // strcpy(buf_cpy, buf)
                         printf("Printing the list before checking commands.\n");
                         printMasterClientList();
+                        // if (g_numEntries == 0){
+                        recv_message = convertStringToMessage(buf, MESSAGE_SIZE, g_numEntries);
+                        // }
+                        // decodeStringToMessage(buf, &recv_message);
+                        printf("Printing the list after decoding recv_message.\n");
+                        printMasterClientList();
+                        print_recv_message(&recv_message);
+                        
                 
                         if (recv_message.type == LOGIN){
                             printf("login request received.\n");
                             printf("Socket ID: %d\n",i);
                             login_command(&recv_message, i);
-                            printf("Printing the list after returning.\n");
-                            printMasterClientList();
+                            // clear_recv_message(&recv_message);
                         }
                         else if (recv_message.type == JOIN){
                             printf("join request received.\n");
@@ -230,7 +244,10 @@ int main(int argc, char *argv[])
                         }
                         print_recv_message(&recv_message);
                         printMasterClientList();
+                        
                     }
+                    bzero(buf_cpy, sizeof buf_cpy);
+                    bzero(buf, sizeof buf);
                 } // END handle data from client
             } // END got new incoming connection
         } // END looping through file descriptors
@@ -244,44 +261,59 @@ int main(int argc, char *argv[])
 void login_command(message* recv_message, int fdnum){
     printf("Printing the list before inserting.\n");
     printMasterClientList();
-    print_recv_message(recv_message);
+    
     // first checking the client info based on the control message
     client_info* current_client = malloc(sizeof(client_info));
-    strcpy(current_client->username, recv_message->source);
-    strcpy(current_client->password, recv_message->data); 
-    current_client->logged_in = true; 
-    strcpy(current_client->current_session, "waiting_room"); // default session is the waiting room
-    current_client->fd = fdnum; 
+    // strcpy(current_client->username, recv_message->source);
+    // printf("Current client username: %s, Receive message source: %s\n", current_client->username, recv_message->source);
+    // strcpy(current_client->password, recv_message->data); 
+    // current_client->logged_in = true; 
+    // strcpy(current_client->current_session, "waiting_room"); // default session is the waiting room
+    // current_client->fd = fdnum; 
 
     // insert some logic here to authorize the user
     
     int i = 0; 
 
     do{
+        
         // adding the client to the master list at the first available null entry
+        
         if(g_masterClientList[i] == NULL){
-            g_masterClientList[i] = current_client; 
-            printf("inserted new client %s at iteration %d\n",current_client->username, i);
 
+            strcpy(current_client->username, recv_message->source);
+            strcpy(current_client->password, recv_message->data); 
+            current_client->logged_in = true; 
+            strcpy(current_client->current_session, "waiting_room"); // default session is the waiting room
+            current_client->fd = fdnum; 
+
+            g_masterClientList[i] = current_client; 
+            g_numEntries = i;
+            printf("inserted new client %s at iteration %d\n",current_client->username, i);
             break; 
         }
         // if the client name (which should be unique) is already in the global, make sure it's logged in = true
-        else if (strcmp(g_masterClientList[i]->username, current_client->username) == 0){
-            g_masterClientList[i]->logged_in = true;
-            current_client->fd = fdnum; 
-            printf("client %s already exists after %d iterations.\n", current_client->username, i);
-            printf("master client list username: %s\n", g_masterClientList[i]->username);
-
-            break;
+        else{
+            client_info temp_client = *(g_masterClientList[i]);
+            if (strcmp(temp_client.username, recv_message->source) == 0){
+                strcpy(g_masterClientList[i]->username, recv_message->source); 
+                g_masterClientList[i]->logged_in = true;
+                g_masterClientList[i]->fd = fdnum; 
+                printf("client %s already exists after %d iterations.\n", current_client->username, i);
+                printf("master client list username: %s\n", temp_client.username);
+                break;
+            }
         }
         i++; 
 
     }while(i < MAX_USERS); 
 
     free(current_client);
-    clear_recv_message(recv_message);
+    // clear_recv_message(recv_message);
     printf("Printing the list after inserting.\n");
     printMasterClientList(); 
+    printf("Printing Receive Message in login command: \n");
+    print_recv_message(recv_message);
 }
 
 bool join_command(message* recv_message){
@@ -319,6 +351,7 @@ void clear_recv_message(message* recv_message){
 }
 
 void print_recv_message(message* recv_message){
+    printf("Received at address %p\n", recv_message);
     printf("Receieved type: %d\n", recv_message->type);
     printf("Received source: %s\n", recv_message->source);
     printf("Received data: %s\n", recv_message->data);
@@ -329,7 +362,7 @@ void printMasterClientList(){
     for (i = 0; ((i < MAX_USERS) && (g_masterClientList[i] != NULL)); ++i){
         client_info* current_client = g_masterClientList[i];
         
-        printf("Client #%d\n", i);
+        printf("Client #%d at address %p\n", i, g_masterClientList[i]);
         printf("username: %s\n", current_client->username);
         printf("password: %s\n", current_client->password);
         printf("current session: %s\n", current_client->current_session);
@@ -340,8 +373,9 @@ void printMasterClientList(){
 }
 
 void initializeMasterClientList(){
-    g_masterClientList = malloc(sizeof (client_info*)*MAX_USERS);
+    // g_masterClientList = malloc(sizeof (client_info*)*MAX_USERS);
     for (int i = 0; i < MAX_USERS; ++i){
+        g_masterClientList[i] = malloc(sizeof (client_info));
         g_masterClientList[i] = NULL;
     }
 }

@@ -3,7 +3,8 @@
 
 #define MESSAGE_SIZE 1024
 #define MAX_NAME 1024 
-#define MAX_DATA 1024 
+#define MAX_DATA 1024
+#define MAX_USERS 100 
 
 
 typedef struct message
@@ -15,4 +16,5 @@ typedef struct message
     
 } message;
 
-message convertStringToMessage(char* msgString, int sizeOfMessage);
+message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntries);
+void decodeStringToMessage(char* str, message* recv_message);
