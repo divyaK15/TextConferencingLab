@@ -48,6 +48,7 @@ int g_numEntries = 0;
 // void login_command(message* recv_message, int fdnum, char* source, char* data);
 void login_command(message* recv_message, int fdnum);
 bool join_command(message* recv_message);
+void create_command(message* recv_message); 
 // helper functions 
 bool sessionExists(); 
 void printMasterClientList();
@@ -216,19 +217,33 @@ int main(int argc, char *argv[])
                         printMasterClientList();
                         print_recv_message(&recv_message);
                         
-                
+                        /********** login ****************/
                         if (recv_message.type == LOGIN){
                             printf("login request received.\n");
                             printf("Socket ID: %d\n",i);
                             login_command(&recv_message, i);
                             // clear_recv_message(&recv_message);
                         }
+                        /*************** join **************/
                         else if (recv_message.type == JOIN){
                             printf("join request received.\n");
                             if(sessionExists(recv_message.data)){
-                                printf("Session Exists, user can join session. \n"); 
+                                printf("Session %s exists, user can join session. \n", recv_message.data); 
+                            }
+                            else{
+                                printf("Session %s does not exist. \n", recv_message.data); 
                             }
                             join_command(&recv_message);
+                        }
+                        /*************** create ************/ 
+                        else if(recv_message.type == NEW_SESS){
+                            printf("create request recieved");
+                            if(!sessionExists(recv_message.data)){
+                                printf("Creating new session %s\n", recv_message.data); 
+                                create_command(&recv_message); 
+                            } 
+                            
+
                         }
                         // logic for rest of the commands here
                         else {
@@ -324,12 +339,27 @@ bool join_command(message* recv_message){
     return true;
 }
 
+void create_command(message* recv_message){
+    for(int i = 0; i < MAX_USERS; i++){ 
+        if(g_masterClientList[i].logged_in = false){ 
+            printf("Client not logged in. Please log in and try again. \n"); 
+        }
+        else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
+            strcpy(g_masterClientList[i].current_session, recv_message->data); 
+            g_masterClientList[i].logged_in = true; 
+            printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
+
+        }
+    }
+}
+
 /************************************* Helper Functions **************************************/
 bool sessionExists(char* sessionID){
     printf("checking if session exists\n");
+    printf("session ID to check: %s\n", sessionID); 
     for(int i=0; i<MAX_USERS; i++){
         client_info current_client = g_masterClientList[i];
-        if(strcmp(g_masterClientList[i].username, "default_user") !=0){
+        if((strcmp(g_masterClientList[i].username, "default_user") !=0) && (g_masterClientList[i].logged_in == true)){
             //client_info* current_client = g_masterClientList[i];
             if(strcmp(current_client.current_session,sessionID) == 0){
                 printf("Current client is %s\n", current_client.username);
@@ -385,7 +415,7 @@ void initializeMasterClientList(){
     for (int i = 0; i < MAX_USERS; ++i){
         //client_info* default_client = malloc(sizeof(client_info)); 
         // g_masterClientList[i] = malloc(sizeof(client_info));
-        printf("iteration %d: \n", i); 
+       // printf("iteration %d: \n", i); 
         strcpy( g_masterClientList[i].username, "default_user"); 
         strcpy( g_masterClientList[i].password, "default_pass"); 
         strcpy( g_masterClientList[i].current_session, "default_session"); 
