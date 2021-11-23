@@ -42,7 +42,7 @@ typedef struct client_info{
 //When new client connects, intitialize struct with client info 
 // add the struct to the pointer array 
 
-client_info* g_masterClientList[MAX_USERS]; 
+static client_info g_masterClientList[MAX_USERS]; 
 int g_numEntries = 0;
 // handling user commands
 // void login_command(message* recv_message, int fdnum, char* source, char* data);
@@ -263,7 +263,7 @@ void login_command(message* recv_message, int fdnum){
     printMasterClientList();
     
     // first checking the client info based on the control message
-    client_info* current_client = malloc(sizeof(client_info));
+    client_info current_client;
     // strcpy(current_client->username, recv_message->source);
     // printf("Current client username: %s, Receive message source: %s\n", current_client->username, recv_message->source);
     // strcpy(current_client->password, recv_message->data); 
@@ -279,27 +279,27 @@ void login_command(message* recv_message, int fdnum){
         
         // adding the client to the master list at the first available null entry
         
-        if(strcmp(g_masterClientList[i]->username, "default_user")==0){
+        if(strcmp(g_masterClientList[i].username, "default_user")==0){
 
-            strcpy(current_client->username, recv_message->source);
-            strcpy(current_client->password, recv_message->data); 
-            current_client->logged_in = true; 
-            strcpy(current_client->current_session, "waiting_room"); // default session is the waiting room
-            current_client->fd = fdnum; 
+            strcpy(current_client.username, recv_message->source);
+            strcpy(current_client.password, recv_message->data); 
+            current_client.logged_in = true; 
+            strcpy(current_client.current_session, "waiting_room"); // default session is the waiting room
+            current_client.fd = fdnum; 
 
             g_masterClientList[i] = current_client; 
             g_numEntries = i;
-            printf("inserted new client %s at iteration %d\n",current_client->username, i);
+            printf("inserted new client %s at iteration %d\n",current_client.username, i);
             break; 
         }
         // if the client name (which should be unique) is already in the global, make sure it's logged in = true
         else{
-            client_info temp_client = *(g_masterClientList[i]);
+            client_info temp_client = g_masterClientList[i];
             if (strcmp(temp_client.username, recv_message->source) == 0){
-                strcpy(g_masterClientList[i]->username, recv_message->source); 
-                g_masterClientList[i]->logged_in = true;
-                g_masterClientList[i]->fd = fdnum; 
-                printf("client %s already exists after %d iterations.\n", current_client->username, i);
+                strcpy(g_masterClientList[i].username, recv_message->source); 
+                g_masterClientList[i].logged_in = true;
+                g_masterClientList[i].fd = fdnum; 
+                printf("client %s already exists after %d iterations.\n", current_client.username, i);
                 printf("master client list username: %s\n", temp_client.username);
                 break;
             }
@@ -308,7 +308,7 @@ void login_command(message* recv_message, int fdnum){
 
     }while(i < MAX_USERS); 
 
-    free(current_client);
+    // free(current_client);
     // clear_recv_message(recv_message);
     printf("Printing the list after inserting.\n");
     printMasterClientList(); 
@@ -324,11 +324,11 @@ bool join_command(message* recv_message){
 bool sessionExists(char* sessionID){
     printf("checking if session exists\n");
     for(int i=0; i<MAX_USERS; i++){
-        client_info* current_client = g_masterClientList[i];
-        if(strcmp(g_masterClientList[i]->username, "default_user") !=0){
+        client_info current_client = g_masterClientList[i];
+        if(strcmp(g_masterClientList[i].username, "default_user") !=0){
             //client_info* current_client = g_masterClientList[i];
-            if(strcmp(current_client->current_session,sessionID) == 0){
-                printf("Current client is %s\n", current_client->username);
+            if(strcmp(current_client.current_session,sessionID) == 0){
+                printf("Current client is %s\n", current_client.username);
                 printf("Session %s exists.\n", sessionID); 
                 return true; 
             }
@@ -360,12 +360,12 @@ void print_recv_message(message* recv_message){
 void printMasterClientList(){
     int i = 0;
     for (i = 0; i < MAX_USERS ; ++i){
-        if(strcmp(g_masterClientList[i]->username, "default_user")==0){
+        if(strcmp(g_masterClientList[i].username, "default_user")==0){
             break; 
         }
-        client_info* current_client = g_masterClientList[i];
+        client_info* current_client = &g_masterClientList[i];
         
-        printf("Client #%d at address %p\n", i, g_masterClientList[i]);
+        printf("Client #%d at address %p\n", i, &g_masterClientList[i]);
         printf("username: %s\n", current_client->username);
         printf("password: %s\n", current_client->password);
         printf("current session: %s\n", current_client->current_session);
@@ -380,13 +380,13 @@ void initializeMasterClientList(){
     printf("Initialize Master function: \n"); 
     for (int i = 0; i < MAX_USERS; ++i){
         //client_info* default_client = malloc(sizeof(client_info)); 
-        g_masterClientList[i] = malloc(sizeof(client_info));
+        // g_masterClientList[i] = malloc(sizeof(client_info));
         printf("iteration %d: \n", i); 
-        strcpy( g_masterClientList[i]->username, "default_user"); 
-        strcpy( g_masterClientList[i]->password, "default_pass"); 
-        strcpy( g_masterClientList[i]->current_session, "default_session"); 
-        g_masterClientList[i]->fd = -1; 
-        g_masterClientList[i]->logged_in = false; 
+        strcpy( g_masterClientList[i].username, "default_user"); 
+        strcpy( g_masterClientList[i].password, "default_pass"); 
+        strcpy( g_masterClientList[i].current_session, "default_session"); 
+        g_masterClientList[i].fd = -1; 
+        g_masterClientList[i].logged_in = false; 
        // g_masterClientList[i] = default_client;
     }
 }

@@ -164,11 +164,11 @@ message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntrie
     int colonCount = 0; // hey
     int colonIndex = 0;
     int colonPrevious = 0;
-    char* msgHeaders[5]; 
-    char* msgSource[MAX_NAME]; 
-    char* msgData[MAX_DATA]; 
-    char* msgType[4]; 
-    char* msgSize[4]; 
+    char* msgSource = malloc(sizeof (char)*(MAX_NAME)); 
+    char* msgData= malloc(sizeof (char)*(MAX_DATA)); 
+    char* msgType= malloc(sizeof (char)*(4)); 
+    char* msgSize= malloc(sizeof (char)*(4)); 
+    
     int msgHeaderIndex = 0; 
 
     bzero(msgSource, MAX_NAME); 
@@ -204,10 +204,19 @@ message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntrie
                 colonPrevious = colonIndex; 
                 strcpy(msgStruct.data, msgData); 
                 printf("convert string to message -- data at address %p or %p\n", msgData, &msgStruct.data);
-            }         
+                printf("message data %s\n", msgData);
+            }
+
+            // strncpy(msgData, msgString + colonPrevious+1, i - colonPrevious-1);
+            // strcpy(msgStruct.data, msgData);
+                   
         }
     }
     
+    free(msgSize);
+    free(msgType);
+    free(msgData);
+    free(msgSource);
 
     // strcpy(msgStruct.data, msgString + colonPrevious + 1);
     // strcpy(msgStruct.data, msgString + colonPrevious + 1);
@@ -215,6 +224,7 @@ message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntrie
 
     //strncpy(msgStruct.data, msgString + colonPrevious + 1, msgStruct.size); // check this one
     //printf("filedata: %s \n",packetStruct.filedata);
+    
 
     return msgStruct;
 }
