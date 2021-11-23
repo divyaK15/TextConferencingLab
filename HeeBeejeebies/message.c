@@ -207,11 +207,12 @@ message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntrie
                 printf("message data %s\n", msgData);
             }
 
-            // strncpy(msgData, msgString + colonPrevious+1, i - colonPrevious-1);
+            //strncpy(msgData, msgString + colonPrevious+1, i - colonPrevious-1);
             // strcpy(msgStruct.data, msgData);
                    
         }
     }
+    strcpy(msgStruct.data, msgData);
     
     free(msgSize);
     free(msgType);

@@ -225,6 +225,9 @@ int main(int argc, char *argv[])
                         }
                         else if (recv_message.type == JOIN){
                             printf("join request received.\n");
+                            if(sessionExists(recv_message.data)){
+                                printf("Session Exists, user can join session. \n"); 
+                            }
                             join_command(&recv_message);
                         }
                         // logic for rest of the commands here
@@ -317,6 +320,7 @@ void login_command(message* recv_message, int fdnum){
 }
 
 bool join_command(message* recv_message){
+
     return true;
 }
 
@@ -390,6 +394,7 @@ void initializeMasterClientList(){
        // g_masterClientList[i] = default_client;
     }
 }
+
 
 
 
