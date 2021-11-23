@@ -199,13 +199,13 @@ message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntrie
                 strcpy(msgStruct.source, msgSource); // source is the username in this case, character array
                 printf("convert string to message -- source at address %p or %p\n", msgSource, &msgStruct.source);
             }
-            else if(colonCount == 4){   
+           /* else if(colonCount == 4){   
                 strncpy(msgData, msgString + colonPrevious+1, i - colonPrevious-1);
                 colonPrevious = colonIndex; 
                 strcpy(msgStruct.data, msgData); 
                 printf("convert string to message -- data at address %p or %p\n", msgData, &msgStruct.data);
                 printf("message data %s\n", msgData);
-            }
+            }*/
 
             //strncpy(msgData, msgString + colonPrevious+1, i - colonPrevious-1);
             // strcpy(msgStruct.data, msgData);
