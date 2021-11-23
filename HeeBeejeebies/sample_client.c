@@ -30,6 +30,7 @@
 char msg[500] = {'\0'};
 char servermsg[50] = {'\0'}; 
 int* serverreply; 
+char serverreplymsg[50] = {'\0'}; 
 void login(char* login_info);
 void logout();
 void joinSession(char* session_id);
@@ -85,18 +86,20 @@ int main(/*int argc,char *argv[]*/){
 		if((strncmp(msg, "/login", 6))== 0){
             login(msg); 
             ssize_t login_response; 
-           /* login_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
+            login_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
+            printf("login response:    %d", login_response); 
+            printf("server reply %s\n", serverreplymsg); 
             if(login_response < 0){
                 perror("Error didnt receive login. \n"); 
             }
             else{
-                if(*serverreply == LO_NAK){
+                if(strcmp(serverreplymsg, "LO_NAK") == 0){
                     printf("Unable to log in. \n"); 
                 }
-                else if(*serverreply == LO_ACK){
+                else if(strcmp(serverreplymsg, "LO_ACK") == 0){
                     printf("Login successful. \n"); 
                 }
-            }*/
+            }
             logged_in = true; 
 			pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
         }
@@ -118,15 +121,17 @@ int main(/*int argc,char *argv[]*/){
             else{
                 printf("join session: \n");
                 /*ssize_t join_response; 
-                join_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
+                join_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
+                printf("join response:    %d", join_response); 
+                printf("server reply %s\n", serverreplymsg); 
                 if(join_response < 0){
-                    perror("Error didnt receive join. \n"); 
+                    perror("Error didnt receive join request. \n"); 
                 }
                 else{
-                    if(*serverreply == JN_NAK){
+                    if(strcmp(serverreplymsg, "JN_NAK") == 0){
                         printf("Unable to join session. \n"); 
                     }
-                    else if(*serverreply == JN_ACK){
+                    else if(strcmp(serverreplymsg, "JN_ACK") == 0){
                         printf("Join session successful. \n"); 
                     }
                 }*/

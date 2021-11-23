@@ -46,7 +46,7 @@ static client_info g_masterClientList[MAX_USERS];
 int g_numEntries = 0;
 // handling user commands
 // void login_command(message* recv_message, int fdnum, char* source, char* data);
-void login_command(message* recv_message, int fdnum);
+bool login_command(message* recv_message, int fdnum);
 void join_command(message* recv_message);
 void leave_command(message* recv_message); 
 void create_command(message* recv_message);
@@ -223,14 +223,36 @@ int main(int argc, char *argv[])
                         if (recv_message.type == LOGIN){
                             printf("login request received.\n");
                             printf("Socket ID: %d\n",i);
-                            login_command(&recv_message, i);
+                            if(login_command(&recv_message, i)){
+                                ssize_t login_ACK; 
+                                login_ACK = send(i, "LO_ACK", sizeof("LO_ACK"),0); 
+                                if(login_ACK > 0){ 
+                                    printf("Login ACK sent. \n"); 
+                                }
+                            }
+                            else{
+                                ssize_t login_ACK; 
+                                login_ACK = send(i, "LO_NAK", sizeof("LO_NAK"),0);  
+                            }
                             // clear_recv_message(&recv_message);
                         }
                         /*************** join **************/
                         else if (recv_message.type == JOIN){
                             printf("join request received.\n");
                             if(sessionExists(recv_message.data)){ // session exists has print statements
-                                join_command(&recv_message);
+                            //printf("is join sussecful: %d",join_command(&recv_message) ); 
+                                /*if(join_command(&recv_message)){
+                                    ssize_t join_ACK; 
+                                    join_ACK = send(i, "JN_ACK", sizeof("JN_ACK"),0); 
+                                    if(join_ACK > 0){ 
+                                        printf("Join ACK sent. \n"); 
+                                    }
+                                }
+                                else{
+                                ssize_t join_ACK; 
+                                join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);  
+                                }*/
+                                join_command(&recv_message); 
                             }
                             
                         }
@@ -293,7 +315,7 @@ int main(int argc, char *argv[])
 /************************************ Command Functions *********************************************/
 
 
-void login_command(message* recv_message, int fdnum){
+bool login_command(message* recv_message, int fdnum){
     printf("Printing the list before inserting.\n");
     printMasterClientList();
     
@@ -325,6 +347,7 @@ void login_command(message* recv_message, int fdnum){
             g_masterClientList[i] = current_client; 
             g_numEntries = i;
             printf("inserted new client %s at iteration %d\n",current_client.username, i);
+            return true; 
             break; 
         }
         // if the client name (which should be unique) is already in the global, make sure it's logged in = true
@@ -336,12 +359,14 @@ void login_command(message* recv_message, int fdnum){
                 g_masterClientList[i].fd = fdnum; 
                 printf("client %s already exists after %d iterations.\n", current_client.username, i);
                 printf("master client list username: %s\n", temp_client.username);
+                return true; 
                 break;
             }
         }
         i++; 
 
     }while(i < MAX_USERS); 
+    return false; 
 
     // free(current_client);
     // clear_recv_message(recv_message);
@@ -358,13 +383,23 @@ void join_command(message* recv_message){
         if (strcmp(g_masterClientList[i].username, "default_user") == 0) break;
         if(g_masterClientList[i].logged_in == false){
            printf("Client not logged in. Please log in and try again. \n"); 
+           /*ssize_t join_ACK; 
+           join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);*/
+           //return false; 
        }
        else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
            strcpy(g_masterClientList[i].current_session, recv_message->data); 
            g_masterClientList[i].logged_in = true; 
            printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
-       }
+           /* ssize_t join_ACK; 
+            join_ACK = send(i, "JN_ACK", sizeof("JN_ACK"),0); 
+            if(join_ACK > 0){ 
+                printf("Join ACK sent. \n"); 
+            } */
+            //return true; 
     }
+    //return false; 
+}
 }
 
 void create_command(message* recv_message){
