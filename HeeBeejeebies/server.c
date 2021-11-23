@@ -42,7 +42,7 @@ typedef struct client_info{
 //When new client connects, intitialize struct with client info 
 // add the struct to the pointer array 
 
-static client_info* g_masterClientList[MAX_USERS]; 
+client_info* g_masterClientList[MAX_USERS]; 
 int g_numEntries = 0;
 // handling user commands
 // void login_command(message* recv_message, int fdnum, char* source, char* data);
@@ -279,7 +279,7 @@ void login_command(message* recv_message, int fdnum){
         
         // adding the client to the master list at the first available null entry
         
-        if(g_masterClientList[i] == NULL){
+        if(strcmp(g_masterClientList[i]->username, "default_user")==0){
 
             strcpy(current_client->username, recv_message->source);
             strcpy(current_client->password, recv_message->data); 
@@ -325,7 +325,7 @@ bool sessionExists(char* sessionID){
     printf("checking if session exists\n");
     for(int i=0; i<MAX_USERS; i++){
         client_info* current_client = g_masterClientList[i];
-        if(current_client != NULL){
+        if(strcmp(g_masterClientList[i]->username, "default_user") !=0){
             //client_info* current_client = g_masterClientList[i];
             if(strcmp(current_client->current_session,sessionID) == 0){
                 printf("Current client is %s\n", current_client->username);
@@ -359,7 +359,10 @@ void print_recv_message(message* recv_message){
 
 void printMasterClientList(){
     int i = 0;
-    for (i = 0; ((i < MAX_USERS) && (g_masterClientList[i] != NULL)); ++i){
+    for (i = 0; i < MAX_USERS ; ++i){
+        if(strcmp(g_masterClientList[i]->username, "default_user")==0){
+            break; 
+        }
         client_info* current_client = g_masterClientList[i];
         
         printf("Client #%d at address %p\n", i, g_masterClientList[i]);
@@ -374,9 +377,17 @@ void printMasterClientList(){
 
 void initializeMasterClientList(){
     // g_masterClientList = malloc(sizeof (client_info*)*MAX_USERS);
+    printf("Initialize Master function: \n"); 
     for (int i = 0; i < MAX_USERS; ++i){
-        g_masterClientList[i] = malloc(sizeof (client_info));
-        g_masterClientList[i] = NULL;
+        //client_info* default_client = malloc(sizeof(client_info)); 
+        g_masterClientList[i] = malloc(sizeof(client_info));
+        printf("iteration %d: \n", i); 
+        strcpy( g_masterClientList[i]->username, "default_user"); 
+        strcpy( g_masterClientList[i]->password, "default_pass"); 
+        strcpy( g_masterClientList[i]->current_session, "default_session"); 
+        g_masterClientList[i]->fd = -1; 
+        g_masterClientList[i]->logged_in = false; 
+       // g_masterClientList[i] = default_client;
     }
 }
 
