@@ -47,7 +47,7 @@ int g_numEntries = 0;
 // handling user commands
 // void login_command(message* recv_message, int fdnum, char* source, char* data);
 void login_command(message* recv_message, int fdnum);
-bool join_command(message* recv_message);
+void join_command(message* recv_message);
 void create_command(message* recv_message); 
 // helper functions 
 bool sessionExists(); 
@@ -334,9 +334,18 @@ void login_command(message* recv_message, int fdnum){
     print_recv_message(recv_message);
 }
 
-bool join_command(message* recv_message){
+void join_command(message* recv_message){
+    for(int i = 0; i < MAX_USERS; i++){
+       if(g_masterClientList[i].logged_in = false){
+           printf("Client not logged in. Please log in and try again. \n"); 
+       }
+       else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
+           strcpy(g_masterClientList[i].current_session, recv_message->data); 
+           g_masterClientList[i].logged_in = true; 
+           printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
+       }
+    }
 
-    return true;
 }
 
 void create_command(message* recv_message){
