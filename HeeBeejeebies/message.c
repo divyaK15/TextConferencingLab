@@ -198,6 +198,7 @@ message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntrie
                 colonPrevious = colonIndex; 
                 strcpy(msgStruct.source, msgSource); // source is the username in this case, character array
                 printf("convert string to message -- source at address %p or %p\n", msgSource, &msgStruct.source);
+                break;
             }
            /* else if(colonCount == 4){   
                 strncpy(msgData, msgString + colonPrevious+1, i - colonPrevious-1);
@@ -212,7 +213,8 @@ message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntrie
                    
         }
     }
-    strcpy(msgStruct.data, msgData);
+    // strncpy(msgData, msgString + colonPrevious+1);
+    strcpy(msgStruct.data, msgString + colonPrevious + 1);
     
     free(msgSize);
     free(msgType);
