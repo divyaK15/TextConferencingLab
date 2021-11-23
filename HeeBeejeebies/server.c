@@ -48,7 +48,9 @@ int g_numEntries = 0;
 // void login_command(message* recv_message, int fdnum, char* source, char* data);
 void login_command(message* recv_message, int fdnum);
 void join_command(message* recv_message);
-void create_command(message* recv_message); 
+void leave_command(message* recv_message); 
+void create_command(message* recv_message);
+void query_command();  
 // helper functions 
 bool sessionExists(); 
 void printMasterClientList();
@@ -245,6 +247,21 @@ int main(int argc, char *argv[])
                             
 
                         }
+                        /************** leaving ************/ 
+                        else if(recv_message.type == LEAVE_SESS){ 
+                            leave_command(&recv_message);
+                        }
+
+                        /*********** query ************/
+
+                        else if(recv_message.type == QUERY){
+                            for(int i = 0; i < MAX_USERS; i++){
+                                if(strcmp(g_masterClientList[i].username, "default_user")==0){
+                                    break; 
+                                }
+                            printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
+                             }
+                        }
                         // logic for rest of the commands here
                         else {
                             // just basic text that needs to be sent out
@@ -359,6 +376,30 @@ void create_command(message* recv_message){
             printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
 
         }
+    }
+}
+
+void leave_command(message* recv_message){
+    printf("leaving session function\n"); 
+    for(int i = 0; i < MAX_USERS; i++){ 
+        if(g_masterClientList[i].logged_in = false){ 
+            printf("Client not logged in. Please log in and try again. \n"); 
+        }
+        else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
+            strcpy(g_masterClientList[i].current_session, "waiting_room"); 
+            g_masterClientList[i].logged_in = true; // do we need to set this to false? 
+            printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
+        }
+    }
+
+}
+
+void query_command(){
+    for(int i = 0; i < MAX_USERS; i++){
+        if(strcmp(g_masterClientList[i].username, "default_user")==0){
+            break; 
+        }
+        printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
     }
 }
 
