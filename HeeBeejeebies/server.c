@@ -229,13 +229,10 @@ int main(int argc, char *argv[])
                         /*************** join **************/
                         else if (recv_message.type == JOIN){
                             printf("join request received.\n");
-                            if(sessionExists(recv_message.data)){
-                                printf("Session %s exists, user can join session. \n", recv_message.data); 
+                            if(sessionExists(recv_message.data)){ // session exists has print statements
+                                join_command(&recv_message);
                             }
-                            else{
-                                printf("Session %s does not exist. \n", recv_message.data); 
-                            }
-                            join_command(&recv_message);
+                            
                         }
                         /*************** create ************/ 
                         else if(recv_message.type == NEW_SESS){
@@ -244,6 +241,9 @@ int main(int argc, char *argv[])
                                 printf("Creating new session %s\n", recv_message.data); 
                                 create_command(&recv_message); 
                             } 
+                            else {
+                                printf("Session %s already exists. Cannot create session. \n",recv_message.data);
+                            }
                             
 
                         }
@@ -351,9 +351,12 @@ void login_command(message* recv_message, int fdnum){
     print_recv_message(recv_message);
 }
 
+
 void join_command(message* recv_message){
+// assuming this function is only called if the session exists
     for(int i = 0; i < MAX_USERS; i++){
-       if(g_masterClientList[i].logged_in = false){
+        if (strcmp(g_masterClientList[i].username, "default_user") == 0) break;
+        if(g_masterClientList[i].logged_in == false){
            printf("Client not logged in. Please log in and try again. \n"); 
        }
        else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
@@ -362,12 +365,12 @@ void join_command(message* recv_message){
            printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
        }
     }
-
 }
 
 void create_command(message* recv_message){
     for(int i = 0; i < MAX_USERS; i++){ 
-        if(g_masterClientList[i].logged_in = false){ 
+         if (strcmp(g_masterClientList[i].username, "default_user") == 0) break;
+        else if(g_masterClientList[i].logged_in == false){ 
             printf("Client not logged in. Please log in and try again. \n"); 
         }
         else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
