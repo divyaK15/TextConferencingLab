@@ -120,7 +120,8 @@ int main(/*int argc,char *argv[]*/){
             }
             else{
                 printf("join session: \n");
-                /*ssize_t join_response; 
+                joinSession(msg);
+                ssize_t join_response; 
                 join_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
                 printf("join response:    %d", join_response); 
                 printf("server reply %s\n", serverreplymsg); 
@@ -134,9 +135,9 @@ int main(/*int argc,char *argv[]*/){
                     else if(strcmp(serverreplymsg, "JN_ACK") == 0){
                         printf("Join session successful. \n"); 
                     }
-                }*/
+                }
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
-            joinSession(msg);
+            
             }
             
         }
@@ -194,7 +195,9 @@ int main(/*int argc,char *argv[]*/){
                 printf("Please login first. \n"); 
             }
             else{
-                /*ssize_t create_response;
+                createSession(msg);
+
+                ssize_t create_response;
                 create_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
                 if(create_response < 0){
                     perror("Error didnt receive query. \n"); 
@@ -203,9 +206,9 @@ int main(/*int argc,char *argv[]*/){
                     if(*serverreply == NS_ACK){
                         printf("Query successful. \n"); 
                     }
-                }*/
+                }
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
-            createSession(msg);
+            
             printf("create session: \n");
             }
         }

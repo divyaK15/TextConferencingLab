@@ -389,19 +389,19 @@ void join_command(message* recv_message){
         if (strcmp(g_masterClientList[i].username, "default_user") == 0) break;
         if(g_masterClientList[i].logged_in == false){
            printf("Client not logged in. Please log in and try again. \n"); 
-           /*ssize_t join_ACK; 
-           join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);*/
+           ssize_t join_ACK; 
+           join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
            //return false; 
        }
        else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
            strcpy(g_masterClientList[i].current_session, recv_message->data); 
            g_masterClientList[i].logged_in = true; 
            printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
-           /* ssize_t join_ACK; 
+           ssize_t join_ACK; 
             join_ACK = send(i, "JN_ACK", sizeof("JN_ACK"),0); 
             if(join_ACK > 0){ 
                 printf("Join ACK sent. \n"); 
-            } */
+            } 
             //return true; 
     }
     //return false; 
