@@ -343,24 +343,30 @@ bool login_command(message* recv_message, int fdnum){
             current_client.logged_in = true; 
             strcpy(current_client.current_session, "waiting_room"); // default session is the waiting room
             current_client.fd = fdnum; 
-
+            
             g_masterClientList[i] = current_client; 
             g_numEntries = i;
             printf("inserted new client %s at iteration %d\n",current_client.username, i);
-            return true; 
-            break; 
+            return true;  
         }
         // if the client name (which should be unique) is already in the global, make sure it's logged in = true
         else{
             client_info temp_client = g_masterClientList[i];
             if (strcmp(temp_client.username, recv_message->source) == 0){
-                strcpy(g_masterClientList[i].username, recv_message->source); 
-                g_masterClientList[i].logged_in = true;
-                g_masterClientList[i].fd = fdnum; 
-                printf("client %s already exists after %d iterations.\n", current_client.username, i);
-                printf("master client list username: %s\n", temp_client.username);
-                return true; 
-                break;
+                if (temp_client.logged_in){
+                    printf("Client %s already logged in.\n",temp_client.username);
+                    // send a nack 
+                    return false;
+                }
+                else {
+                    strcpy(g_masterClientList[i].username, recv_message->source); 
+                    g_masterClientList[i].logged_in = true;
+                    g_masterClientList[i].fd = fdnum; 
+                    printf("client %s already exists after %d iterations.\n", current_client.username, i);
+                    printf("master client list username: %s\n", temp_client.username);
+                    return true; 
+                }
+                
             }
         }
         i++; 
