@@ -197,7 +197,7 @@ int main(/*int argc,char *argv[]*/){
             else{
                 createSession(msg);
 
-                ssize_t create_response;
+                /*ssize_t create_response;
                 create_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
                 if(create_response < 0){
                     perror("Error didnt receive query. \n"); 
@@ -206,9 +206,20 @@ int main(/*int argc,char *argv[]*/){
                     if(*serverreply == NS_ACK){
                         printf("Query successful. \n"); 
                     }
+                }*/ 
+                ssize_t create_response; 
+                create_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
+                printf("create response:    %d", create_response); 
+                printf("server reply %s\n", serverreplymsg); 
+                if(create_response < 0){
+                    perror("Error didnt receive login. \n"); 
                 }
+                else{
+                    if(strcmp(serverreplymsg, "NS_NAK") == 0){
+                        printf("New session creation unsuccessful. \n"); 
+                    }
+            }
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
-            
             printf("create session: \n");
             }
         }
