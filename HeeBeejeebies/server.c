@@ -61,6 +61,7 @@ void printMasterClientList();
 void initializeMasterClientList();
 int identifyClientByFd(int fd);
 int identifyClientByUsername(message* recv_message);
+void uniqueSessions(int* unique_sessions, int size);
 void clear_recv_message(message* recv_message);
 void print_recv_message(message* recv_message);
 
@@ -321,7 +322,7 @@ int main(int argc, char *argv[])
                             query_command(str_list);
                             printf("Returned query string:\n %s", str_list);
                             messageToString(QU_ACK, 0, "", str_list, str_list_cpy);
-                            printf("Returned query string (after message):\n %s", str_list_cpy);
+                            // printf("Returned query string (after message):\n %s", str_list_cpy);
                             if (send(i, str_list_cpy, MAX_DATA, 0) == -1){
                                 perror("Query");
                             }
@@ -578,32 +579,58 @@ void query_command(char* final_list){
         }
         else{
             if(g_masterClientList[i].logged_in){
+
                 strcat(active_users, g_masterClientList[i].username); 
                 strcat(active_users, "\n"); 
-                printf("sessArrayInd: %d\n", sessArrayInd); 
-                for(int j=0; j <= sessArrayInd ; j++){
-                    if(strcmp(g_masterClientList[i].current_session, "waiting_room") == 0){
-                        continue; 
-                    }
-                    else if(strcmp(g_masterClientList[i].current_session, "default_room") == 0){
-                        break; 
-                    }
-                    else if (strcmp(g_masterClientList[i].current_session, g_masterClientList[unique_sessions[j]].current_session) == 0){
-                        continue;
-                    }
-                    else if (unique_sessions[j] == -1){
-                        // we have iterated through all existing entries without breaking --> insert here
-                        unique_sessions[j] = i;
-                        strcat(active_sessions, g_masterClientList[i].current_session);
-                        strcat(active_sessions, "\n");
-                        printf("Adding session %s from client %d into unique_sessions at index %d\n", g_masterClientList[i].current_session,i,sessArrayInd);
-                        sessArrayInd++;
-                    }
-                }
+
+                uniqueSessions(unique_sessions,10);
+                // printf("sessArrayInd: %d\n", sessArrayInd); 
+                
+
+                /*for(int j=0; j <= MAX_USERS ; j++){
+
+                    if(strcmp(g_masterClientList[i].current_session, "waiting_room") != 0){
+                        if (unique_sessions[j] == -1){
+                            unique_sessions[j] = i;
+                            strcat(active_sessions, g_masterClientList[i].current_session);
+                            strcat(active_sessions, "\n");
+                            printf("Adding session %s from client %d into unique_sessions at index %d\n", g_masterClientList[i].current_session,i,j);
+                            sessArrayInd++;
+                            break;
+                        }
+                        else if (strcmp(g_masterClientList[i].current_session, g_masterClientList[unique_sessions[j]].current_session) == 0){
+                            printf("There exists another client in the same room. Do not add to unique list.\n");
+                            break;
+                        }
+                    }*/
+
+                    // else if (unique_sessions[j] == -1){
+                    //     // we have iterated through all existing entries without breaking --> insert here
+                    //     unique_sessions[j] = i;
+                    //     strcat(active_sessions, g_masterClientList[i].current_session);
+                    //     strcat(active_sessions, "\n");
+                    //     printf("Adding session %s from client %d into unique_sessions at index %d\n", g_masterClientList[i].current_session,i,sessArrayInd);
+                    //     sessArrayInd++;
+                    //     break;
+                    // }
+
+                    // /*else if(strcmp(g_masterClientList[i].current_session, "default_room") == 0){
+                    //     break; 
+                    // }*/
+                    // else if (strcmp(g_masterClientList[i].current_session, g_masterClientList[unique_sessions[j]].current_session) == 0){
+                    //     continue;
+                    // }
+                    
+                //}
             }
         }
         // printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
     }
+
+    // for (int u = 0; u < 10; u++){
+    //     printf("unique session at index %d has value %d from global.\n", u, unique_sessions[u]);
+    // }
+
     // concatenate the username and session strings, then copy into final string
     strcat(active_users, active_sessions);
     strcpy(final_list, active_users);
@@ -652,6 +679,41 @@ bool sessionExists(char* sessionID){
     return false; 
 
 }
+
+// void usersInSession(char* sessionID, int* array);
+void uniqueSessions(int* unique_sessions, int size){
+    for (int a = 0; a < size; a++){
+        unique_sessions[a] = -1;
+    }
+    char strSession[500];
+    bzero(strSession, 500);
+    int insertIndex = 0;
+    bool unique = true;
+    for (int i = 0; i < MAX_USERS; i++){
+        // check the session of the global at that index
+        if (!g_masterClientList[i].logged_in) continue;
+        strcpy(strSession, g_masterClientList[i].current_session);
+        // if (!unique)
+        for (int j = 0 ; j < size; j++){
+            if((unique_sessions[j] == -1) && (strcmp(strSession, "waiting_room") != 0)){
+                // insert it here
+                unique_sessions[j] = i;
+                printf("inserted %s here bitches user %d --> %d (index of unique one)\n",strSession, i, j);
+                break;
+            } 
+            else if (unique_sessions[j] == -1) continue;
+            else if ((unique_sessions[j] != -1) && (strcmp(strSession, g_masterClientList[unique_sessions[j]].current_session) == 0){
+                // they are the same 
+                // do not insert this in the list
+                unique = false;
+                printf("kill me\n");
+                break;
+            }
+        }
+
+    }
+}
+
 
 void clear_recv_message(message* recv_message){
     recv_message->type = -1;
@@ -703,7 +765,7 @@ void initializeMasterClientList(){
     strcpy(g_masterClientList[3].username,"tenzin");
     strcpy(g_masterClientList[3].password,"dime$");
 
-
+    
     printf("Initialize Master function: \n"); 
     for (int i = 0; i < MAX_USERS; ++i){
         if ( i > 3){
