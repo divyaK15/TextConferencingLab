@@ -320,6 +320,9 @@ int main(int argc, char *argv[])
                         // logic for rest of the commands here
                         else {
                             // just basic text that needs to be sent out
+                            if(strcmp(g_masterClientList[senderIndex].current_session, "waiting_room") == 0){
+                                continue;
+                            }
                             printf("sending client has fd %d and current session %s\n", g_masterClientList[senderIndex].fd, g_masterClientList[senderIndex].current_session);
                             for(j = 0; j <= fdmax; j++) {
                                 // send to everyone!
