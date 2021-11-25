@@ -161,6 +161,8 @@ int main(int argc, char *argv[])
     // for the message that we receive from the clients
     message recv_message, send_ack, send_message;
     char str_ack[MAX_DATA];
+    char str_list[MAX_DATA];
+    char str_list_cpy[MAX_DATA];
 
     // main loop
     for(;;) {
@@ -310,12 +312,20 @@ int main(int argc, char *argv[])
                         /*********** query ************/
 
                         else if(recv_message.type == QUERY){
-                            for(int i = 0; i < MAX_USERS; i++){
-                                if(strcmp(g_masterClientList[i].username, "default_user")==0){
-                                    break; 
-                                }
-                            printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
-                             }
+                            // for(int i = 0; i < MAX_USERS; i++){
+                            //     if(strcmp(g_masterClientList[i].username, "default_user")==0){
+                            //         break; 
+                            //     }
+                            //     printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
+                            //  }
+                            query_command(str_list);
+                            printf("Returned query string:\n %s", str_list);
+                            messageToString(QU_ACK, 0, "", str_list, str_list_cpy);
+                            printf("Returned query string (after message):\n %s", str_list_cpy);
+                            if (send(i, str_list_cpy, MAX_DATA, 0) == -1){
+                                perror("Query");
+                            }
+
                         }
                         // logic for rest of the commands here
                         else {
@@ -553,13 +563,52 @@ void leave_command(message* recv_message){
 
 }
 
-void query_command(){
+void query_command(char* final_list){
+    int unique_sessions[MAX_USERS] = {-1}; 
+    int sessArrayInd = 0;  
+    char active_users[MAX_DATA]; 
+    bzero(active_users, MAX_DATA); 
+    char active_sessions[MAX_DATA]; 
+    bzero(active_sessions, MAX_DATA); 
+    strcpy(active_sessions, "List of active sessions: \n"); 
+    strcpy(active_users, "List of usernames: \n"); 
     for(int i = 0; i < MAX_USERS; i++){
         if(strcmp(g_masterClientList[i].username, "default_user")==0){
             break; 
         }
-        printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
+        else{
+            if(g_masterClientList[i].logged_in){
+                strcat(active_users, g_masterClientList[i].username); 
+                strcat(active_users, "\n"); 
+                printf("sessArrayInd: %d\n", sessArrayInd); 
+                for(int j=0; j <= sessArrayInd ; j++){
+                    if(strcmp(g_masterClientList[i].current_session, "waiting_room") == 0){
+                        continue; 
+                    }
+                    else if(strcmp(g_masterClientList[i].current_session, "default_room") == 0){
+                        break; 
+                    }
+                    else if (strcmp(g_masterClientList[i].current_session, g_masterClientList[unique_sessions[j]].current_session) == 0){
+                        continue;
+                    }
+                    else if (unique_sessions[j] == -1){
+                        // we have iterated through all existing entries without breaking --> insert here
+                        unique_sessions[j] = i;
+                        strcat(active_sessions, g_masterClientList[i].current_session);
+                        strcat(active_sessions, "\n");
+                        printf("Adding session %s from client %d into unique_sessions at index %d\n", g_masterClientList[i].current_session,i,sessArrayInd);
+                        sessArrayInd++;
+                    }
+                }
+            }
+        }
+        // printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
     }
+    // concatenate the username and session strings, then copy into final string
+    strcat(active_users, active_sessions);
+    strcpy(final_list, active_users);
+    printf("Query string: %s\n", final_list); 
+    return;
 }
 
 /************************************* Helper Functions **************************************/
@@ -686,5 +735,7 @@ int identifyClientByUsername(message* recv_message){
     }
     return -1;
 }
+
+
 
 

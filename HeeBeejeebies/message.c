@@ -236,7 +236,7 @@ message convertStringToMessage(char* msgString){
 
 // assumed str is declared outside as an array with large enough size
 void messageToString(int type, int size, char* source, char* data, char* str){
-    bzero(str, 2*MAX_DATA);
+    bzero(str, MAX_DATA);
     message send_msg;
     send_msg.type = type;
     send_msg.size = size;
@@ -245,5 +245,6 @@ void messageToString(int type, int size, char* source, char* data, char* str){
     strcpy(send_msg.source, source);
     strcpy(send_msg.data, data);
     int str_temp = sprintf(str, "%u:%u:%s:%s",send_msg.type, send_msg.size, send_msg.source, send_msg.data);
+    printf("String from messageToString:\n %s", str);
     return;
 }

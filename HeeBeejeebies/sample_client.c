@@ -78,6 +78,7 @@ void *recvmg(void *my_sock)
             printf("Unable to create session.\n");
         }else if (recv_message.type == QU_ACK){
             printf("quack quack.\n");
+            printf("%s", recv_message.data);
         }else if (recv_message.type == MESSAGE){
             printf("%s: %s", recv_message.source, recv_message.data);
         }
@@ -208,7 +209,6 @@ int main(/*int argc,char *argv[]*/){
                 }*/
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             list();
-            printf("leave session: \n");
             }
         }
 
