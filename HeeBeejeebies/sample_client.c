@@ -58,7 +58,16 @@ void *recvmg(void *my_sock)
 		fputs(msg,stdout);
 	}
 }
-
+void *recvreply(void *my_sock)
+{
+	int sock = *((int *)my_sock);
+	int len;
+	// client thread always ready to receive message
+	while((len = recv(sock,serverreplymsg,500,0)) > 0) {
+		serverreplymsg[len] = '\0';
+		fputs(serverreplymsg,stdout);
+	}
+}
 int main(/*int argc,char *argv[]*/){
 	pthread_t recvt;
 	int len;
@@ -79,6 +88,7 @@ int main(/*int argc,char *argv[]*/){
     
     //check if user is logged in 
     bool logged_in = false; 
+    
 	while(fgets(msg,500,stdin) > 0) {
 
         //login
@@ -87,7 +97,7 @@ int main(/*int argc,char *argv[]*/){
             login(msg); 
             ssize_t login_response; 
             login_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
-            printf("login response:    %d", login_response); 
+            printf("login response: %d\n", login_response); 
             printf("server reply %s\n", serverreplymsg); 
             if(login_response < 0){
                 perror("Error didnt receive login. \n"); 
@@ -98,17 +108,17 @@ int main(/*int argc,char *argv[]*/){
                 }
                 else if(strcmp(serverreplymsg, "LO_ACK") == 0){
                     printf("Login successful. \n"); 
+                    logged_in = true; 
                 }
             }
-            logged_in = true; 
 			pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
         }
 
         //logout 
 
         else if((strncmp(msg, "/logout", 7)) == 0){
+            logout(); // consider changing this back to after the thread 
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
-            logout();
             printf("logout: \n");
         }
 
@@ -123,7 +133,7 @@ int main(/*int argc,char *argv[]*/){
                 joinSession(msg);
                 ssize_t join_response; 
                 join_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
-                printf("join response:    %d", join_response); 
+                printf("join response: %d\n", join_response); 
                 printf("server reply %s\n", serverreplymsg); 
                 if(join_response < 0){
                     perror("Error didnt receive join request. \n"); 
@@ -135,10 +145,9 @@ int main(/*int argc,char *argv[]*/){
                     else if(strcmp(serverreplymsg, "JN_ACK") == 0){
                         printf("Join session successful. \n"); 
                     }
-                }
-            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
-            
+                }   
             }
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             
         }
 
@@ -149,11 +158,11 @@ int main(/*int argc,char *argv[]*/){
                 printf("Please login first. \n"); 
             }
             else{
-
-            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
-            leaveSession();
-            printf("leave session: \n");
+                leaveSession();
+                
             }
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
+            printf("leave session: \n");
             
         }
 
@@ -211,6 +220,7 @@ int main(/*int argc,char *argv[]*/){
                 create_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
                 printf("create response:    %d", create_response); 
                 printf("server reply %s\n", serverreplymsg); 
+                
                 if(create_response < 0){
                     perror("Error didnt receive login. \n"); 
                 }
@@ -218,11 +228,13 @@ int main(/*int argc,char *argv[]*/){
                     if(strcmp(serverreplymsg, "NS_NAK") == 0){
                         printf("New session creation unsuccessful. \n"); 
                     }
+                }
+            
             }
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             printf("create session: \n");
-            }
         }
+        // typical text that needs to be sent to everyone else in the chat
         else {
             strcpy(send_msg,client_name);
             strcat(send_msg,": ");
@@ -321,6 +333,12 @@ void login(char* buffer){
 	messageToString(LOGIN, username, password/*, message_string*/);
     bzero(buffer, sizeof(buffer)); 
     clear_message(); 
+
+    // struct timeval timeout;
+    // // estimate an effective timeout based on the RTT
+    // timeout.tv_sec = 10;
+    // timeout.tv_usec = 0;
+    // setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 }
 
 // implement logout

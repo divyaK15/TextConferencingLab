@@ -47,6 +47,8 @@ int g_numEntries = 0;
 // handling user commands
 // void login_command(message* recv_message, int fdnum, char* source, char* data);
 bool login_command(message* recv_message, int fdnum);
+bool login_auth(message* recv_message, int fd);
+bool register_client(message* recv_message, int fd);
 void join_command(message* recv_message);
 void leave_command(message* recv_message); 
 void create_command(message* recv_message);
@@ -195,8 +197,8 @@ int main(int argc, char *argv[])
 							newfd);
                     }
                 } else {
-                    printf("Printing the list before receiving new data:\n");
-                    printMasterClientList();
+                    // printf("Printing the list before receiving new data:\n");
+                    // printMasterClientList();
                     // handle data from a client
                     if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
                         // got error or connection closed by client
@@ -221,15 +223,16 @@ int main(int argc, char *argv[])
                         recv_message = convertStringToMessage(buf, MESSAGE_SIZE, g_numEntries);
                         // }
                         // decodeStringToMessage(buf, &recv_message);
-                        printf("Printing the list after decoding recv_message.\n");
-                        printMasterClientList();
+                        // printf("Printing the list after decoding recv_message.\n");
+                        // printMasterClientList();
                         print_recv_message(&recv_message);
+                    
                         
                         /********** login ****************/
                         if (recv_message.type == LOGIN){
                             printf("login request received.\n");
                             printf("Socket ID: %d\n",i);
-                            if(login_command(&recv_message, i)){
+                            if(/*login_command(&recv_message, i)*/login_auth(&recv_message, i)){
                                 ssize_t login_ACK; 
                                 login_ACK = send(i, "LO_ACK", sizeof("LO_ACK"),0); 
                                 if(login_ACK > 0){ 
@@ -245,6 +248,7 @@ int main(int argc, char *argv[])
                         /*************** join **************/
                         else if (recv_message.type == JOIN){
                             printf("join request received.\n");
+                            ssize_t join_ACK;
                             if(sessionExists(recv_message.data)){ // session exists has print statements
                             //printf("is join sussecful: %d",join_command(&recv_message) ); 
                                 /*if(join_command(&recv_message)){
@@ -260,33 +264,38 @@ int main(int argc, char *argv[])
                                 }*/
                                 // join_command(&recv_message); 
                                 if (update_session(&recv_message)){
-                                    printf("Updated session to %s successfully\n");
-                                    printMasterClientList();
+                                    printf("Updated session to %s successfully\n", recv_message.data);
+                                    // printMasterClientList();
                                     // send ack
-                                    ssize_t join_ACK; 
-                                    join_ACK = send(i, "JN_ACK", sizeof("JN_ACK"),0); 
-                                    if(join_ACK < 0){ 
-                                        perror("JN_ACK"); 
-                                    }
-                                    printf("JN_ACK send.\n");
+                                    // join_ACK = send(i, "JN_ACK", sizeof("JN_ACK"),0); 
+                                    // if(join_ACK < 0){ 
+                                    //     perror("JN_ACK"); 
+                                    // }
+                                    // else {
+                                    //     printf("JN_ACK sent.\n");
+                                    // }
                                 }
                                 else {
                                     // send nack
-                                    ssize_t join_ACK; 
-                                    join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
-                                    if(join_ACK < 0){ 
-                                        perror("JN_NAK"); 
-                                    }
-                                    printf("JN_NAK send.\n");
+                                    
+                                    // join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
+                                    // if(join_ACK < 0){ 
+                                    //     perror("JN_NAK -- Could not update session\n"); 
+                                    // }
+                                    // else {
+                                    //     printf("JN_NAK send.\n");
+                                    // }
                                 }
                             }
                             else{
-                                    ssize_t join_ACK; 
-                                    join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
-                                    if(join_ACK < 0){ 
-                                        perror("JN_NAK"); 
-                                    }
-                                    printf("JN_NAK send.\n");
+                                    // join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
+                                    // if(join_ACK < 0){ 
+                                    //     perror("JN_NAK -- Session does not exist"); 
+                                    // }
+                                    // else {
+                                    //     printf("JN_NAK send.\n");
+                                    // }
+                                    
                                 
                             }
                             
@@ -294,6 +303,7 @@ int main(int argc, char *argv[])
                         /*************** create ************/ 
                         else if(recv_message.type == NEW_SESS){
                             printf("create request recieved");
+
                             if(!sessionExists(recv_message.data)){
                                 // printf("Creating new session %s\n", recv_message.data); 
                                 // create_command(&recv_message); 
@@ -365,7 +375,7 @@ int main(int argc, char *argv[])
                             bzero(buf, sizeof buf);
                         }
                         // print_recv_message(&recv_message);
-                        // printMasterClientList();
+                        printMasterClientList();
                         
                     }
                     bzero(buf_cpy, sizeof buf_cpy);
@@ -379,7 +389,55 @@ int main(int argc, char *argv[])
 }
 /************************************ Command Functions *********************************************/
 
+bool login_auth(message* recv_message, int fd){
+    int clientIndex = identifyClientByUsername(recv_message);
+    if (clientIndex == -1){
+        printf("Client with username %s is not registered.\n",recv_message->source);
+        return false;
+    } 
+    else if (strcmp(g_masterClientList[clientIndex].password, recv_message->data) != 0){
+        printf("Incorrect password.\n");
+        return false;
+        
+    } 
+    else{
+        printf("User %s is authorized.\n", recv_message->source);
+        // update the login information to be true
+        g_masterClientList[clientIndex].logged_in = true;
+        g_masterClientList[clientIndex].fd = fd;
+        strcpy(g_masterClientList[clientIndex].current_session, "waiting_room");
+        return true;
+    } 
+}
 
+bool register_client(message* recv_message, int fd){
+    // check if client can be registered by iterating through master list first (username must be unique)
+    int regIndex = identifyClientByUsername(recv_message);
+    if (regIndex != -1){
+        printf("Username %s is taken\n", recv_message->source);
+        return false;
+    }
+    else{
+        // find the next available index in the global list
+        // then insert the username and password given, followed by immediately loggining in, fd (should be given), and waiting_room
+        for (int i = 0; i < MAX_USERS; i++){
+            if (strcmp(g_masterClientList[i].username, "default_user") == 0){
+                // replace everything then break
+                strcpy(g_masterClientList[i].username, recv_message->source);
+                strcpy(g_masterClientList[i].password, recv_message->data);
+                strcpy(g_masterClientList[i].current_session, "waiting_room");
+                g_masterClientList[i].fd = fd;
+                g_masterClientList[i].logged_in = true;
+
+                return true;
+            }
+        }
+        printf("Not enough space to add new client.\n");
+        return false;
+
+    }
+
+}
 bool login_command(message* recv_message, int fdnum){
     printf("Printing the list before inserting.\n");
     printMasterClientList();
@@ -441,10 +499,10 @@ bool login_command(message* recv_message, int fdnum){
 
     // free(current_client);
     // clear_recv_message(recv_message);
-    printf("Printing the list after inserting.\n");
-    printMasterClientList(); 
-    printf("Printing Receive Message in login command: \n");
-    print_recv_message(recv_message);
+    // printf("Printing the list after inserting.\n");
+    // printMasterClientList(); 
+    // printf("Printing Receive Message in login command: \n");
+    // print_recv_message(recv_message);
 }
 
 // assuming this function is only called if the session exists
@@ -503,7 +561,7 @@ bool update_session(message* recv_message){
 
 void leave_command(message* recv_message){
     printf("leaving session function\n"); 
-    for(int i = 0; i < MAX_USERS; i++){ 
+    /*for(int i = 0; i < MAX_USERS; i++){ 
         if(g_masterClientList[i].logged_in = false){ 
             printf("Client not logged in. Please log in and try again. \n"); 
         }
@@ -512,7 +570,9 @@ void leave_command(message* recv_message){
             g_masterClientList[i].logged_in = true; // do we need to set this to false? 
             printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
         }
-    }
+    }*/
+    int clientIndex = identifyClientByUsername(recv_message);
+    strcpy(g_masterClientList[clientIndex].current_session, "waiting_room");
 
 }
 
@@ -582,18 +642,33 @@ void printMasterClientList(){
 }
 
 void initializeMasterClientList(){
-    // g_masterClientList = malloc(sizeof (client_info*)*MAX_USERS);
+    int j = 0;
+    // initialize client stefan
+    strcpy(g_masterClientList[0].username,"stefan");
+    strcpy(g_masterClientList[0].password,"redpandas123");
+
+    // client marc
+    strcpy(g_masterClientList[1].username,"morc");
+    strcpy(g_masterClientList[1].password,"bananaphone");
+
+    // client kirti
+    strcpy(g_masterClientList[2].username,"kirti");
+    strcpy(g_masterClientList[2].password,"password");
+
+    // client tenzin
+    strcpy(g_masterClientList[3].username,"tenzin");
+    strcpy(g_masterClientList[3].password,"dime$");
+
+
     printf("Initialize Master function: \n"); 
     for (int i = 0; i < MAX_USERS; ++i){
-        //client_info* default_client = malloc(sizeof(client_info)); 
-        // g_masterClientList[i] = malloc(sizeof(client_info));
-       // printf("iteration %d: \n", i); 
-        strcpy( g_masterClientList[i].username, "default_user"); 
-        strcpy( g_masterClientList[i].password, "default_pass"); 
-        strcpy( g_masterClientList[i].current_session, "default_session"); 
+        if ( i > 3){
+            strcpy(g_masterClientList[i].username, "default_user"); 
+            strcpy(g_masterClientList[i].password, "default_pass"); 
+        }
+        strcpy(g_masterClientList[i].current_session, "default_session"); 
         g_masterClientList[i].fd = -1; 
         g_masterClientList[i].logged_in = false; 
-       // g_masterClientList[i] = default_client;
     }
 }
 
@@ -604,7 +679,7 @@ int identifyClientByFd(int fd){
             return recv_fd;
         }
     }
-    return (recv_fd-1);
+    return -1;
 }
 
 int identifyClientByUsername(message* recv_message){
@@ -614,7 +689,7 @@ int identifyClientByUsername(message* recv_message){
             return i;
         }
     }
-    return (MAX_USERS-1);
+    return -1;
 }
 
 
