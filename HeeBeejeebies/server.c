@@ -583,7 +583,12 @@ void query_command(char* final_list){
                 strcat(active_users, g_masterClientList[i].username); 
                 strcat(active_users, "\n"); 
 
-                uniqueSessions(unique_sessions,10);
+                if(strcmp(g_masterClientList[i].current_session, "waiting_room") !=0){
+                    strcat(active_sessions, g_masterClientList[i].current_session); 
+                    //strcat(active_sessions, "\n");
+                }
+
+              //  uniqueSessions(unique_sessions,10);
                 // printf("sessArrayInd: %d\n", sessArrayInd); 
                 
 
@@ -702,7 +707,7 @@ void uniqueSessions(int* unique_sessions, int size){
                 break;
             } 
             else if (unique_sessions[j] == -1) continue;
-            else if ((unique_sessions[j] != -1) && (strcmp(strSession, g_masterClientList[unique_sessions[j]].current_session) == 0){
+            else if ((unique_sessions[j] != -1) && (strcmp(strSession, g_masterClientList[unique_sessions[j]].current_session) == 0)){
                 // they are the same 
                 // do not insert this in the list
                 unique = false;
