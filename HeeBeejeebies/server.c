@@ -27,7 +27,7 @@
 #define NS_NAK 66
 #define MESSAGE 70 
 #define QUERY 80 
-#define OU_ACK 85 
+#define QU_ACK 85 
 
 
 typedef struct client_info{ 
@@ -93,8 +93,8 @@ int main(int argc, char *argv[])
     struct sockaddr_storage remoteaddr; // client address
     socklen_t addrlen;
 
-    char buf[500];    // buffer for client data
-    char buf_cpy[500];
+    char buf[MAX_DATA];    // buffer for client data
+    char buf_cpy[MAX_DATA];
     int nbytes;
 
 	char remoteIP[INET_ADDRSTRLEN]; // this used to be INET6_ADDSTRLEN
@@ -258,53 +258,19 @@ int main(int argc, char *argv[])
                         else if (recv_message.type == JOIN){
                             printf("join request received.\n");
                             ssize_t join_ACK;
-                            if(sessionExists(recv_message.data)){ // session exists has print statements
-                            //printf("is join sussecful: %d",join_command(&recv_message) ); 
-                                /*if(join_command(&recv_message)){
-                                    ssize_t join_ACK; 
-                                    join_ACK = send(i, "JN_ACK", sizeof("JN_ACK"),0); 
-                                    if(join_ACK > 0){ 
-                                        printf("Join ACK sent. \n"); 
-                                    }
-                                }
-                                else{
-                                ssize_t join_ACK; 
-                                join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);  
-                                }*/
-                                // join_command(&recv_message); 
+                            if(sessionExists(recv_message.data)){ // session exists has print statements 
                                 if (update_session(&recv_message)){
                                     printf("Updated session to %s successfully\n", recv_message.data);
                                     // printMasterClientList();
                                     send_ack.type = JN_ACK;
-                                    // join_ACK = send(i, "JN_ACK", sizeof("JN_ACK"),0); 
-                                    // if(join_ACK < 0){ 
-                                    //     perror("JN_ACK"); 
-                                    // }
-                                    // else {
-                                    //     printf("JN_ACK sent.\n");
-                                    // }
                                 }
                                 else {
                                     // send nack
                                     send_ack.type = JN_NAK;
-                                    // join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
-                                    // if(join_ACK < 0){ 
-                                    //     perror("JN_NAK -- Could not update session\n"); 
-                                    // }
-                                    // else {
-                                    //     printf("JN_NAK send.\n");
-                                    // }
                                 }
                             }
                             else{
                                     send_ack.type = JN_NAK;
-                                    // join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
-                                    // if(join_ACK < 0){ 
-                                    //     perror("JN_NAK -- Session does not exist"); 
-                                    // }
-                                    // else {
-                                    //     printf("JN_NAK send.\n");
-                                    // }
                                                                    
                             }
                             messageToString(send_ack.type, 0, "", "", str_ack);
@@ -323,41 +289,18 @@ int main(int argc, char *argv[])
                                 // create_command(&recv_message); 
                                 if (update_session(&recv_message)){
                                     send_ack.type = NS_ACK;
-                                    // ssize_t create_ACK; 
-                                    // create_ACK = send(i, "NS_ACK", sizeof("NS_ACK"),0); 
-                                    // if(create_ACK < 0){ 
-                                    //     perror("NS_ACK"); 
-                                    // }
-
                                 }
                                 else{
                                     send_ack.type = NS_NAK;
-                                    // ssize_t create_ACK; 
-                                    // create_ACK = send(i, "NS_NAK", sizeof("NS_NAK"),0); 
-                                    // if(create_ACK < 0){ 
-                                    //     perror("NS_NAK"); 
-                                    // }
                                 }
-
                             } 
                             else {
                                 send_ack.type = NS_NAK;
-                                /*
-                                ssize_t create_ACK; 
-                                create_ACK = send(i, "NS_NAK", sizeof("NS_NAK"),0); 
-                                if(create_ACK < 0){ 
-                                    perror("NS_NAK"); 
-                                }
-                                printf("Session %s already exists. Cannot create session. \n",recv_message.data);
-                                */
                             }
                             messageToString(send_ack.type, 0, "", "", str_ack);
                             if (send(i, str_ack, strlen(str_ack), 0) < 0){
                                 perror("Send Create ACK");
                             }
-
-                            
-
                         }
                         /************** leaving ************/ 
                         else if(recv_message.type == LEAVE_SESS){ 
@@ -391,10 +334,11 @@ int main(int argc, char *argv[])
                                             send_message.size = MAX_DATA;
                                             strcpy(send_message.source, g_masterClientList[senderIndex].username);
                                             strcpy(send_message.data, buf);
+                                        
                                             printf("buf before: %s\n", buf);
-                                            messageToString(MESSAGE, MAX_DATA, g_masterClientList[senderIndex].username, recv_message.data, buf);
-                                            printf("buf after: %s\n", buf);
-                                            if (send(j, buf, nbytes, 0) == -1) {
+                                            messageToString(MESSAGE, MAX_DATA, g_masterClientList[senderIndex].username, recv_message.data, buf_cpy);
+                                            printf("buf after: %s\n", buf_cpy);
+                                            if (send(j, buf_cpy, nbytes, 0) == -1) {
                                                 perror("send");
                                             }
 
@@ -621,19 +565,37 @@ bool sessionExists(char* sessionID){
     printf("session ID to check: %s\n", sessionID); 
     for(int i=0; i<MAX_USERS; i++){
         client_info current_client = g_masterClientList[i];
-        if((strcmp(g_masterClientList[i].username, "default_user") !=0) && (g_masterClientList[i].logged_in == true)){
-            //client_info* current_client = g_masterClientList[i];
-            if(strcmp(current_client.current_session,sessionID) == 0){
-                printf("Current client is %s\n", current_client.username);
-                printf("Session %s exists.\n", sessionID); 
-                return true; 
+        if (strcmp(g_masterClientList[i].username, "default_user") ==0){
+            // we have iterated through all registered clients without finding the session
+            return false;
+        }
+        else {
+            if(!g_masterClientList[i].logged_in) {
+                // we don't want to consider it as a potential session
+                continue;
             }
+            else{
+                if(strcmp(current_client.current_session,sessionID) == 0){
+                    printf("Current client is %s\n", current_client.username);
+                    printf("Session %s exists.\n", sessionID); 
+                    return true; 
+                 }
+            }
+
+
         }
-        else{
-            // session has not come up and we have iterated through all non-Null entries 
-            printf("Session %s does not exist.\n", sessionID); 
-            return false; 
-        }
+        // if(!g_masterClientList[i].logged_in){
+        //     //client_info* current_client = g_masterClientList[i];
+        //     if(strcmp(current_client.current_session,sessionID) == 0){
+        //         printf("Current client is %s\n", current_client.username);
+        //         printf("Session %s exists.\n", sessionID); 
+        //         return true; 
+        //     }
+        // }
+        // else{
+        //     // session has not come up and we have iterated through all non-Null entries 
+        //     printf("Session %s does not exist.\n", sessionID); 
+        // }
     }
     return false; 
 

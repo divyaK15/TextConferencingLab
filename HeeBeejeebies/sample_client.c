@@ -26,7 +26,7 @@
 #define NS_NAK 66
 #define MESSAGE 70 
 #define QUERY 80 
-#define OU_ACK 85 
+#define QU_ACK 85 
 
 char msg[MAX_DATA] = {'\0'};
 // char servermsg[50] = {'\0'}; 
@@ -68,10 +68,18 @@ void *recvmg(void *my_sock)
         }else if (recv_message.type == LO_NAK){
             printf("Login was unsuccessful.\n");
             logged_in = false;
+        }else if (recv_message.type == JN_ACK){
+            printf("Joined session successfully.\n");
+        }else if (recv_message.type == JN_NAK){
+            printf("Unable to join session.\n");
+        }else if (recv_message.type == NS_ACK){
+            printf("Created session succesfully.\n");
+        }else if (recv_message.type == NS_NAK){
+            printf("Unable to create session.\n");
+        }else if (recv_message.type == QU_ACK){
+            printf("quack quack.\n");
         }else if (recv_message.type == MESSAGE){
             printf("%s: %s", recv_message.source, recv_message.data);
-        }else if (strcmp(msg, "LO_ACK")==0){
-            printf("Received the LO_ACK");
         }
         else{
             fputs(msg,stdout);
@@ -359,6 +367,7 @@ void logout(){
     //send logout control message and set boolean false on server side 
     //logout, username, NULL 
     close(socket_fd);
+    logged_in = false;
 }
 
 void joinSession(char* buffer){
