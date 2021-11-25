@@ -27,6 +27,9 @@
 #define MESSAGE 70 
 #define QUERY 80 
 #define QU_ACK 85 
+#define PM 90
+#define PM_ACK 95 
+#define PM_NAK 96 
 
 char msg[MAX_DATA] = {'\0'};
 // char servermsg[50] = {'\0'}; 
@@ -37,6 +40,7 @@ void logout();
 void joinSession(char* session_id);
 void leaveSession(); 
 void createSession(char* new_session_id); 
+void privateMessage(char* buffer); 
 // void message(char* msg);
 void list(); 
 void quit(); 
@@ -119,22 +123,7 @@ int main(/*int argc,char *argv[]*/){
                 continue;
             }
             login(msg); 
-            /*ssize_t login_response; 
-            login_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
-            printf("login response: %d\n", login_response); 
-            printf("server reply %s\n", serverreplymsg); 
-            if(login_response < 0){
-                perror("Error didnt receive login. \n"); 
-            }
-            else{
-                if(strcmp(serverreplymsg, "LO_NAK") == 0){
-                    printf("Unable to log in. \n"); 
-                }
-                else if(strcmp(serverreplymsg, "LO_ACK") == 0){
-                    printf("Login successful. \n"); 
-                    logged_in = true; 
-                }
-            }*/
+
 			pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
         }
 
@@ -155,21 +144,7 @@ int main(/*int argc,char *argv[]*/){
             else{
                 printf("join session: \n");
                 joinSession(msg);
-                /*ssize_t join_response; 
-                join_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
-                printf("join response: %d\n", join_response); 
-                printf("server reply %s\n", serverreplymsg); 
-                if(join_response < 0){
-                    perror("Error didnt receive join request. \n"); 
-                }
-                else{
-                    if(strcmp(serverreplymsg, "JN_NAK") == 0){
-                        printf("Unable to join session. \n"); 
-                    }
-                    else if(strcmp(serverreplymsg, "JN_ACK") == 0){
-                        printf("Join session successful. \n"); 
-                    }
-                }*/   
+  
             }
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             
@@ -197,16 +172,7 @@ int main(/*int argc,char *argv[]*/){
                 printf("Please login first. \n"); 
             }
             else{
-                /*ssize_t query_response; 
-                query_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
-                if(query_response < 0){
-                    perror("Error didnt receive query. \n"); 
-                }
-                else{
-                    if(*serverreply == JN_ACK){
-                        printf("Query successful. \n"); 
-                    }
-                }*/
+
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             list();
             }
@@ -228,34 +194,25 @@ int main(/*int argc,char *argv[]*/){
             }
             else{
                 createSession(msg);
-
-                /*ssize_t create_response;
-                create_response = recv(socket_fd, serverreply, sizeof(serverreply), 0);
-                if(create_response < 0){
-                    perror("Error didnt receive query. \n"); 
-                }
-                else{
-                    if(*serverreply == NS_ACK){
-                        printf("Query successful. \n"); 
-                    }
-                }*/ 
-                /*ssize_t create_response; 
-                create_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
-                printf("create response:    %d", create_response); 
-                printf("server reply %s\n", serverreplymsg); 
-                
-                if(create_response < 0){
-                    perror("Error didnt receive login. \n"); 
-                }
-                else{
-                    if(strcmp(serverreplymsg, "NS_NAK") == 0){
-                        printf("New session creation unsuccessful. \n"); 
-                    }
-                }*/
             
             }
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             printf("create session: \n");
+        }
+
+        //private messaging 
+
+        else if((strncmp(msg, "/privatemessage", 15)) == 0){
+            if(!logged_in){
+                printf("Please login first. \n"); 
+            }
+            else{
+                printf("Private Message: \n");
+                privateMessage(msg);
+  
+            }
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
+            
         }
         // typical text that needs to be sent to everyone else in the chat
         else {
@@ -394,6 +351,35 @@ void joinSession(char* buffer){
 
 }
 
+void privateMessage(char* buffer){
+    //char* joinSessionID;
+    char messToSend[MAX_DATA];
+    bzero(messToSend, MAX_DATA);  
+    char* clientToSend; 
+    char newString[10][30];  
+    int i, j, ctr; 
+    i=0; j=0; ctr=0; 
+    for(i=0; i<=(strlen(buffer)); i++){
+        if(buffer[i]==' ' || buffer[i]=='\0'){
+            newString[ctr][j]='\0'; 
+            ctr++;
+            j=0; 
+        }
+        else{
+            newString[ctr][j] = buffer[i]; 
+            j++; 
+        }
+    }
+
+    clientToSend = newString[1]; 
+   // messToSend = newString[2]; 
+    printf("Enter message to %s here:", clientToSend); 
+    scanf("%s", messToSend); 
+    printf("sending %s to %s: \n", messToSend, clientToSend); 
+    sendMessageToString(PM, clientToSend, messToSend); 
+    clear_message();
+}
+
 void leaveSession(){
     printf("%s is leaving session. \n", client_name); 
     sendMessageToString(LEAVE_SESS, client_name, ""); 
@@ -406,6 +392,8 @@ void list(){
     sendMessageToString(QUERY, "", ""); 
     clear_message();
 }
+
+
 
 
 void createSession(char* buffer){
@@ -437,3 +425,4 @@ void clear_message(){
     bzero(send_message.data, MAX_DATA);
     // don't want to clear the source because it is the username
 }
+

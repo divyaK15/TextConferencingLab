@@ -28,6 +28,9 @@
 #define MESSAGE 70 
 #define QUERY 80 
 #define QU_ACK 85 
+#define PM 90
+#define PM_ACK 95 
+#define PM_NAK 96 
 
 
 typedef struct client_info{ 
@@ -327,6 +330,47 @@ int main(int argc, char *argv[])
                                 perror("Query");
                             }
 
+                        }
+
+                        /************** Private messaging ************/ 
+                        else if(recv_message.type == PM){
+                            printf("create request recieved");
+                            // check if user that we want to send it to exists //identifyClientByUsername
+                            // identify by username --> returns -1 --> doesnt exist --> set type to nack
+                            // if user exists --> g{index returned}.fd is where we send
+                            // set type to pm_ack, message size = MAX,
+                            // messageToString(send_ack.type, 0, "", "", str_ack);
+                            // if (send(i, str_ack, strlen(str_ack), 0) < 0){
+                            //     perror("Send Create ACK");
+                            // } 
+
+                            int clientToSendInd = identifyClientByUsername(recv_message);
+                            int fdToSend = -1; 
+                            if(clientToSendInd < 0){
+                                send_ack.type = PM_NAK; 
+                            }
+                            else{
+                                fdToSend = g_masterClientList[clientToSendInd].fd; 
+                                send_ack.type = PM_ACK; 
+                            }
+
+                            // if(!sessionExists(recv_message.data)){
+                            //     // printf("Creating new session %s\n", recv_message.data); 
+                            //     // create_command(&recv_message); 
+                            //     if (update_session(&recv_message)){
+                            //         send_ack.type = NS_ACK;
+                            //     }
+                            //     else{
+                            //         send_ack.type = NS_NAK;
+                            //     }
+                            // } 
+                            // else {
+                            //     send_ack.type = NS_NAK;
+                            // }
+                            // messageToString(send_ack.type, 0, "", "", str_ack);
+                            // if (send(i, str_ack, strlen(str_ack), 0) < 0){
+                            //     perror("Send Create ACK");
+                            // }
                         }
                         // logic for rest of the commands here
                         else {
