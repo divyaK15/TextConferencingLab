@@ -24,6 +24,7 @@
 #define LEAVE_SESS 50 
 #define NEW_SESS 60 
 #define NS_ACK 65 
+#define NS_NAK 66
 #define MESSAGE 70 
 #define QUERY 80 
 #define OU_ACK 85 
@@ -158,7 +159,8 @@ int main(int argc, char *argv[])
     fdmax = listener; // so far, it's this one
 
     // for the message that we receive from the clients
-    message recv_message;
+    message recv_message, send_ack, send_message;
+    char str_ack[MAX_DATA];
 
     // main loop
     for(;;) {
@@ -220,7 +222,7 @@ int main(int argc, char *argv[])
                         // printf("Printing the list before checking commands.\n");
                         // printMasterClientList();
                         // if (g_numEntries == 0){
-                        recv_message = convertStringToMessage(buf, MESSAGE_SIZE, g_numEntries);
+                        recv_message = convertStringToMessage(buf);
                         // }
                         // decodeStringToMessage(buf, &recv_message);
                         // printf("Printing the list after decoding recv_message.\n");
@@ -233,15 +235,22 @@ int main(int argc, char *argv[])
                             printf("login request received.\n");
                             printf("Socket ID: %d\n",i);
                             if(/*login_command(&recv_message, i)*/login_auth(&recv_message, i)){
-                                ssize_t login_ACK; 
-                                login_ACK = send(i, "LO_ACK", sizeof("LO_ACK"),0); 
-                                if(login_ACK > 0){ 
-                                    printf("Login ACK sent. \n"); 
-                                }
+                                // ssize_t login_ACK; 
+                                // login_ACK = send(i, "LO_ACK", sizeof("LO_ACK"),0); 
+                                // if(login_ACK > 0){ 
+                                //     printf("Login ACK sent. \n"); 
+                                // }
+                                send_ack.type = LO_ACK;
+                                
                             }
                             else{
-                                ssize_t login_ACK; 
-                                login_ACK = send(i, "LO_NAK", sizeof("LO_NAK"),0);  
+                                // ssize_t login_ACK; 
+                                // login_ACK = send(i, "LO_NAK", sizeof("LO_NAK"),0);  
+                                send_ack.type = LO_NAK;
+                            }
+                            messageToString(send_ack.type, 0, "", "", str_ack);
+                            if (send(i, str_ack, strlen(str_ack), 0) < 0){
+                                perror("Send Login ACK");
                             }
                             // clear_recv_message(&recv_message);
                         }
@@ -266,7 +275,7 @@ int main(int argc, char *argv[])
                                 if (update_session(&recv_message)){
                                     printf("Updated session to %s successfully\n", recv_message.data);
                                     // printMasterClientList();
-                                    // send ack
+                                    send_ack.type = JN_ACK;
                                     // join_ACK = send(i, "JN_ACK", sizeof("JN_ACK"),0); 
                                     // if(join_ACK < 0){ 
                                     //     perror("JN_ACK"); 
@@ -277,7 +286,7 @@ int main(int argc, char *argv[])
                                 }
                                 else {
                                     // send nack
-                                    
+                                    send_ack.type = JN_NAK;
                                     // join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
                                     // if(join_ACK < 0){ 
                                     //     perror("JN_NAK -- Could not update session\n"); 
@@ -288,6 +297,7 @@ int main(int argc, char *argv[])
                                 }
                             }
                             else{
+                                    send_ack.type = JN_NAK;
                                     // join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
                                     // if(join_ACK < 0){ 
                                     //     perror("JN_NAK -- Session does not exist"); 
@@ -295,9 +305,13 @@ int main(int argc, char *argv[])
                                     // else {
                                     //     printf("JN_NAK send.\n");
                                     // }
-                                    
-                                
+                                                                   
                             }
+                            messageToString(send_ack.type, 0, "", "", str_ack);
+                            if (send(i, str_ack, strlen(str_ack), 0) < 0){
+                                perror("Send Join ACK");
+                            }
+                            
                             
                         }
                         /*************** create ************/ 
@@ -308,31 +322,40 @@ int main(int argc, char *argv[])
                                 // printf("Creating new session %s\n", recv_message.data); 
                                 // create_command(&recv_message); 
                                 if (update_session(&recv_message)){
-                                    // send ack 
-                                    ssize_t create_ACK; 
-                                    create_ACK = send(i, "NS_ACK", sizeof("NS_ACK"),0); 
-                                    if(create_ACK < 0){ 
-                                        perror("NS_ACK"); 
-                                    }
+                                    send_ack.type = NS_ACK;
+                                    // ssize_t create_ACK; 
+                                    // create_ACK = send(i, "NS_ACK", sizeof("NS_ACK"),0); 
+                                    // if(create_ACK < 0){ 
+                                    //     perror("NS_ACK"); 
+                                    // }
+
                                 }
                                 else{
-                                    // send nack 
-                                    ssize_t create_ACK; 
-                                    create_ACK = send(i, "NS_NAK", sizeof("NS_NAK"),0); 
-                                    if(create_ACK < 0){ 
-                                        perror("NS_NAK"); 
-                                    }
+                                    send_ack.type = NS_NAK;
+                                    // ssize_t create_ACK; 
+                                    // create_ACK = send(i, "NS_NAK", sizeof("NS_NAK"),0); 
+                                    // if(create_ACK < 0){ 
+                                    //     perror("NS_NAK"); 
+                                    // }
                                 }
 
                             } 
                             else {
+                                send_ack.type = NS_NAK;
+                                /*
                                 ssize_t create_ACK; 
                                 create_ACK = send(i, "NS_NAK", sizeof("NS_NAK"),0); 
                                 if(create_ACK < 0){ 
                                     perror("NS_NAK"); 
                                 }
                                 printf("Session %s already exists. Cannot create session. \n",recv_message.data);
+                                */
                             }
+                            messageToString(send_ack.type, 0, "", "", str_ack);
+                            if (send(i, str_ack, strlen(str_ack), 0) < 0){
+                                perror("Send Create ACK");
+                            }
+
                             
 
                         }
@@ -364,9 +387,17 @@ int main(int argc, char *argv[])
                                         if (g_masterClientList[recvIndex].fd == -1) continue;
                                         if ((strcmp(g_masterClientList[recvIndex].current_session, g_masterClientList[senderIndex].current_session) == 0) && g_masterClientList[recvIndex].logged_in){
                                             printf("receiving client has fd %d and current session %s\n", g_masterClientList[recvIndex].fd, g_masterClientList[recvIndex].current_session);
+                                            send_message.type = MESSAGE;
+                                            send_message.size = MAX_DATA;
+                                            strcpy(send_message.source, g_masterClientList[senderIndex].username);
+                                            strcpy(send_message.data, buf);
+                                            printf("buf before: %s\n", buf);
+                                            messageToString(MESSAGE, MAX_DATA, g_masterClientList[senderIndex].username, recv_message.data, buf);
+                                            printf("buf after: %s\n", buf);
                                             if (send(j, buf, nbytes, 0) == -1) {
                                                 perror("send");
                                             }
+
                                         }
                                     }
                                 }
@@ -397,8 +428,7 @@ bool login_auth(message* recv_message, int fd){
     } 
     else if (strcmp(g_masterClientList[clientIndex].password, recv_message->data) != 0){
         printf("Incorrect password.\n");
-        return false;
-        
+        return false;    
     } 
     else{
         printf("User %s is authorized.\n", recv_message->source);

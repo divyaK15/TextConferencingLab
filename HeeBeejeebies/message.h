@@ -16,5 +16,6 @@ typedef struct message
     
 } message;
 
-message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntries);
-void decodeStringToMessage(char* str, message* recv_message);
+// message convertStringToMessage(char* msgString, int sizeOfMessage, int numEntries);
+message convertStringToMessage(char* msgString);
+void messageToString(int type, int size, char* source, char* data, char* str);

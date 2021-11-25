@@ -15,3 +15,4 @@ typedef struct message
     
 } message;
 
+void messageToString(message* send_msg, char* str);

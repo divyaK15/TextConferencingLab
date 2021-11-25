@@ -51,6 +51,7 @@ char password_client[100];
 
 
 message send_message;
+message recv_message;
 struct sockaddr_in serveraddress;
 
 // https://codingile.wordpress.com/2019/04/07/multiuser-chat-server-in-c/ 
@@ -59,9 +60,14 @@ void *recvmg(void *my_sock, char* buffer)
 	int sock = *((int *)my_sock);
 	int len;
 	// client thread always ready to receive message
-	while((len = recv(sock,buffer,500,0)) > 0) {
-		buffer[len] = '\0';
-		fputs(buffer,stdout);
+	while((len = recv(sock,buffer,MAX_DATA,0)) > 0) {
+		// buffer[len] = '\0';
+		// fputs(buffer,stdout);
+        // 
+        // convert buffer to message, then based on the type print different things
+        recv_message = convertStringToMessage(buffer, )
+
+
 	}
 }
 

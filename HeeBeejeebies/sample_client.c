@@ -23,12 +23,13 @@
 #define LEAVE_SESS 50 
 #define NEW_SESS 60 
 #define NS_ACK 65 
+#define NS_NAK 66
 #define MESSAGE 70 
 #define QUERY 80 
 #define OU_ACK 85 
 
-char msg[500] = {'\0'};
-char servermsg[50] = {'\0'}; 
+char msg[MAX_DATA] = {'\0'};
+// char servermsg[50] = {'\0'}; 
 int* serverreply; 
 char serverreplymsg[50] = {'\0'}; 
 void login(char* login_info);
@@ -36,38 +37,48 @@ void logout();
 void joinSession(char* session_id);
 void leaveSession(); 
 void createSession(char* new_session_id); 
+// void message(char* msg);
 void list(); 
 void quit(); 
-void messageToString(unsigned int type/*, unsigned int size*/, unsigned char source[MAX_NAME], unsigned char data[MAX_DATA]/*, char* string*/);
+void sendMessageToString(unsigned int type/*, unsigned int size*/, unsigned char source[MAX_NAME], unsigned char data[MAX_DATA]/*, char* string*/);
 
 void clear_message();
 
-char client_name[100] = {'\0'};
+char client_name[MAX_NAME] = {'\0'};
 int socket_fd;
 message send_message;
 struct sockaddr_in serveraddress;
 pthread_mutex_t mutex;
+bool logged_in = false; 
 
 void *recvmg(void *my_sock)
 {
 	int sock = *((int *)my_sock);
 	int len;
+    message recv_message;
 	// client thread always ready to receive message
-	while((len = recv(sock,msg,500,0)) > 0) {
-		msg[len] = '\0';
-		fputs(msg,stdout);
+	while((len = recv(sock,msg,MAX_DATA,0)) > 0) {
+        // convert msg to message struct
+        // check the type of the struct received --> output depends on the type
+        msg[len] = '\0';
+        recv_message = convertStringToMessage(msg);
+        if (recv_message.type == LO_ACK){
+            printf("Login was successful.\n");
+            logged_in = true;
+        }else if (recv_message.type == LO_NAK){
+            printf("Login was unsuccessful.\n");
+            logged_in = false;
+        }else if (recv_message.type == MESSAGE){
+            printf("%s: %s", recv_message.source, recv_message.data);
+        }else if (strcmp(msg, "LO_ACK")==0){
+            printf("Received the LO_ACK");
+        }
+        else{
+            fputs(msg,stdout);
+        }
 	}
 }
-void *recvreply(void *my_sock)
-{
-	int sock = *((int *)my_sock);
-	int len;
-	// client thread always ready to receive message
-	while((len = recv(sock,serverreplymsg,500,0)) > 0) {
-		serverreplymsg[len] = '\0';
-		fputs(serverreplymsg,stdout);
-	}
-}
+
 int main(/*int argc,char *argv[]*/){
 	pthread_t recvt;
 	int len;
@@ -87,15 +98,19 @@ int main(/*int argc,char *argv[]*/){
     // include the different possible commands here
     
     //check if user is logged in 
-    bool logged_in = false; 
+    
     
 	while(fgets(msg,500,stdin) > 0) {
 
         //login
 
 		if((strncmp(msg, "/login", 6))== 0){
+            if (logged_in){
+                printf("Already logged in. \n");
+                continue;
+            }
             login(msg); 
-            ssize_t login_response; 
+            /*ssize_t login_response; 
             login_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
             printf("login response: %d\n", login_response); 
             printf("server reply %s\n", serverreplymsg); 
@@ -110,7 +125,7 @@ int main(/*int argc,char *argv[]*/){
                     printf("Login successful. \n"); 
                     logged_in = true; 
                 }
-            }
+            }*/
 			pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
         }
 
@@ -131,7 +146,7 @@ int main(/*int argc,char *argv[]*/){
             else{
                 printf("join session: \n");
                 joinSession(msg);
-                ssize_t join_response; 
+                /*ssize_t join_response; 
                 join_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
                 printf("join response: %d\n", join_response); 
                 printf("server reply %s\n", serverreplymsg); 
@@ -145,7 +160,7 @@ int main(/*int argc,char *argv[]*/){
                     else if(strcmp(serverreplymsg, "JN_ACK") == 0){
                         printf("Join session successful. \n"); 
                     }
-                }   
+                }*/   
             }
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             
@@ -216,7 +231,7 @@ int main(/*int argc,char *argv[]*/){
                         printf("Query successful. \n"); 
                     }
                 }*/ 
-                ssize_t create_response; 
+                /*ssize_t create_response; 
                 create_response = recv(socket_fd, serverreplymsg, sizeof(serverreplymsg), 0);
                 printf("create response:    %d", create_response); 
                 printf("server reply %s\n", serverreplymsg); 
@@ -228,7 +243,7 @@ int main(/*int argc,char *argv[]*/){
                     if(strcmp(serverreplymsg, "NS_NAK") == 0){
                         printf("New session creation unsuccessful. \n"); 
                     }
-                }
+                }*/
             
             }
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
@@ -236,9 +251,13 @@ int main(/*int argc,char *argv[]*/){
         }
         // typical text that needs to be sent to everyone else in the chat
         else {
-            strcpy(send_msg,client_name);
-            strcat(send_msg,": ");
-            strcat(send_msg,msg);
+            // default is message --> write it in a way that can be read from the server 
+            // on server side, would only need to forward the concatenated string
+            messageToString(MESSAGE, MAX_DATA, client_name, msg, send_msg);
+            
+            // strcpy(send_msg,client_name);
+            // strcat(send_msg,": ");
+            // strcat(send_msg,msg);
             len = write(socket_fd,send_msg,strlen(send_msg));
             
             if(len < 0) 
@@ -255,14 +274,14 @@ int main(/*int argc,char *argv[]*/){
 	return 0;
 }
 	
-void messageToString(unsigned int type, /*unsigned int size,*/ unsigned char* source, unsigned char* data/*, char* string*/){
+void sendMessageToString(unsigned int type, /*unsigned int size,*/ unsigned char* source, unsigned char* data/*, char* string*/){
 	pthread_mutex_lock(&mutex);
-
+    message send_message;
 	send_message.type = type; 
-    bzero(send_message.data, sizeof(send_message.data));
+    bzero(send_message.data, MAX_DATA);
     strcpy(send_message.data,data); 
-    send_message.size = sizeof(send_message.data);
-    bzero(send_message.source, sizeof(send_message.source));
+    send_message.size = MAX_DATA;
+    bzero(send_message.source, MAX_NAME);
     strcpy(send_message.source,source); 
     char message_string[1000]; 
 	bzero(message_string, 1000);
@@ -330,15 +349,9 @@ void login(char* buffer){
     }
 
 	char* message_string;
-	messageToString(LOGIN, username, password/*, message_string*/);
+	sendMessageToString(LOGIN, username, password/*, message_string*/);
     bzero(buffer, sizeof(buffer)); 
     clear_message(); 
-
-    // struct timeval timeout;
-    // // estimate an effective timeout based on the RTT
-    // timeout.tv_sec = 10;
-    // timeout.tv_usec = 0;
-    // setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 }
 
 // implement logout
@@ -367,21 +380,21 @@ void joinSession(char* buffer){
 
     joinSessionID = newString[1]; 
     printf("session ID: %s\n", joinSessionID); 
-    messageToString(JOIN, client_name, joinSessionID); 
+    sendMessageToString(JOIN, client_name, joinSessionID); 
     clear_message();
 
 }
 
 void leaveSession(){
     printf("%s is leaving session. \n", client_name); 
-    messageToString(LEAVE_SESS, client_name, ""); 
+    sendMessageToString(LEAVE_SESS, client_name, ""); 
     clear_message();
 }
 
 void list(){
     //defined value, rest is NULL 
     printf("Listing users and avaialable sesisons: \n"); 
-    messageToString(QUERY, "", ""); 
+    sendMessageToString(QUERY, "", ""); 
     clear_message();
 }
 
@@ -405,7 +418,7 @@ void createSession(char* buffer){
 
     createSessionID = newString[1]; 
     printf("session ID: %s\n", createSessionID); 
-    messageToString(NEW_SESS, client_name, createSessionID);
+    sendMessageToString(NEW_SESS, client_name, createSessionID);
     clear_message();
 }
 
