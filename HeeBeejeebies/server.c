@@ -567,6 +567,7 @@ void leave_command(message* recv_message){
 void query_command(char* final_list){
     int unique_sessions[MAX_USERS] = {-1}; 
     int sessArrayInd = 0;  
+    bool isUnique [MAX_USERS] = {false}; 
     char active_users[MAX_DATA]; 
     bzero(active_users, MAX_DATA); 
     char active_sessions[MAX_DATA]; 
@@ -582,11 +583,27 @@ void query_command(char* final_list){
 
                 strcat(active_users, g_masterClientList[i].username); 
                 strcat(active_users, "\n"); 
+                int active_cnt = 0; 
 
                 if(strcmp(g_masterClientList[i].current_session, "waiting_room") !=0){
-                    strcat(active_sessions, g_masterClientList[i].current_session); 
+                   // strcat(active_sessions, g_masterClientList[i].current_session);
+                    for(int k=0; k < i; k++){
+                    
+                        if(strcmp(g_masterClientList[i].current_session, g_masterClientList[k].current_session) !=0){
+                            isUnique[i] = true; 
+                            /*active_cnt++; 
+                            strcat(active_sessions, g_masterClientList[i].current_session);
+                            printf("active count %d\n", active_cnt);
+                            printf("active session string: %s \n", active_sessions); */ 
+                            //keeptrack = true
+                        }
+                    } 
                     //strcat(active_sessions, "\n");
-                }
+                    //for (k=0; k < (i-1); k++){
+                        //g[i].session != g[k].session 
+
+                    }
+                
 
               //  uniqueSessions(unique_sessions,10);
                 // printf("sessArrayInd: %d\n", sessArrayInd); 
@@ -630,6 +647,13 @@ void query_command(char* final_list){
             }
         }
         // printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
+    }
+
+    for(int m = 0; m <MAX_USERS; m++){
+        if(isUnique[m]){
+            printf("username M: %s and session %s \n", g_masterClientList[m].username, g_masterClientList[m].current_session); 
+            strcat(active_sessions, g_masterClientList[m].current_session); 
+        }
     }
 
     // for (int u = 0; u < 10; u++){
