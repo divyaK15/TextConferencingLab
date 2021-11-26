@@ -30,7 +30,18 @@
 #define QU_ACK 85 
 #define PM 90
 #define PM_ACK 95 
-#define PM_NAK 96 
+#define PM_NAK 96
+#define REGISTER 100
+#define RG_ACK 105
+#define RG_NAK 106 
+#define VIEW_ADMIN 110
+#define VIEW_ACK 111
+#define SET_ADMIN 120
+#define SET_ACK 121
+#define SET_NAK 122
+#define KICK 130
+#define KICK_ACK 131
+#define KICK_NAK 132
 
 
 typedef struct client_info{ 
@@ -39,6 +50,7 @@ typedef struct client_info{
     unsigned char current_session[MAX_NAME]; // username as visible to other users in the chat room
     int fd; 
     bool logged_in; 
+    bool is_admin;
 } client_info; 
 
 
@@ -58,6 +70,9 @@ void join_command(message* recv_message);
 void leave_command(message* recv_message); 
 void create_command(message* recv_message);
 bool update_session(message* recv_message);
+int view_admin(int senderIndex);
+bool set_admin(message* recv_message, int senderIndex);
+void kick_user(message* recv_message, int senderIndex);
 void query_command();  
 // helper functions 
 bool sessionExists(); 
@@ -65,6 +80,7 @@ void printMasterClientList();
 void initializeMasterClientList();
 int identifyClientByFd(int fd);
 int identifyClientByUsername(message* recv_message);
+int firstClientInSession(char* session);
 void uniqueSessions(int* unique_sessions, int size);
 void clear_recv_message(message* recv_message);
 void print_recv_message(message* recv_message);
@@ -224,16 +240,8 @@ int main(int argc, char *argv[])
                         // we got some data from a client
                         // message recv_message;
                         clear_recv_message(&recv_message);
-                        // bzero(buf_cpy, sizeof buf_cpy);
-                        // strcpy(buf_cpy, buf)
-                        // printf("Printing the list before checking commands.\n");
-                        // printMasterClientList();
-                        // if (g_numEntries == 0){
                         recv_message = convertStringToMessage(buf);
-                        // }
-                        // decodeStringToMessage(buf, &recv_message);
-                        // printf("Printing the list after decoding recv_message.\n");
-                        // printMasterClientList();
+                        
                         print_recv_message(&recv_message);
                     
                         
@@ -242,11 +250,6 @@ int main(int argc, char *argv[])
                             printf("login request received.\n");
                             printf("Socket ID: %d\n",i);
                             if(/*login_command(&recv_message, i)*/login_auth(&recv_message, i)){
-                                // ssize_t login_ACK; 
-                                // login_ACK = send(i, "LO_ACK", sizeof("LO_ACK"),0); 
-                                // if(login_ACK > 0){ 
-                                //     printf("Login ACK sent. \n"); 
-                                // }
                                 send_ack.type = LO_ACK;
                                 
                             }
@@ -265,11 +268,25 @@ int main(int argc, char *argv[])
                         else if (recv_message.type == JOIN){
                             printf("join request received.\n");
                             ssize_t join_ACK;
+                            
                             if(sessionExists(recv_message.data)){ // session exists has print statements 
+
                                 if (update_session(&recv_message)){
                                     printf("Updated session to %s successfully\n", recv_message.data);
                                     // printMasterClientList();
                                     send_ack.type = JN_ACK;
+                                    /*
+                                    char previousSession[50];
+                                    if (g_masterClientList[senderIndex].is_admin){
+                                        strcpy(previousSession, g_masterClientList[senderIndex].current_session);
+                                        strcpy(g_masterClientList[senderIndex].current_session, "waiting_room");
+                                        int newAdmin = firstClientInSession(previousSession);
+                                        if (newAdmin != -1){
+                                            g_masterClientList[newAdmin].is_admin = true;
+                                        }
+                                    }
+                                    g_masterClientList[senderIndex].is_admin = false;
+                                    */
                                 }
                                 else {
                                     // send nack
@@ -277,9 +294,9 @@ int main(int argc, char *argv[])
                                 }
                             }
                             else{
-                                    send_ack.type = JN_NAK;
-                                                                   
+                                    send_ack.type = JN_NAK;                                  
                             }
+                            
                             messageToString(send_ack.type, 0, "", "", str_ack);
                             if (send(i, str_ack, strlen(str_ack), 0) < 0){
                                 perror("Send Join ACK");
@@ -290,12 +307,24 @@ int main(int argc, char *argv[])
                         /*************** create ************/ 
                         else if(recv_message.type == NEW_SESS){
                             printf("create request recieved");
+                            char previousSession[50];
+
+                            if (g_masterClientList[senderIndex].is_admin){
+                                strcpy(previousSession, g_masterClientList[senderIndex].current_session);
+                                strcpy(g_masterClientList[senderIndex].current_session, "waiting_room");
+                                int newAdmin = firstClientInSession(previousSession);
+                                if (newAdmin != -1){
+                                    g_masterClientList[newAdmin].is_admin = true;
+                                }
+                            }
 
                             if(!sessionExists(recv_message.data)){
                                 // printf("Creating new session %s\n", recv_message.data); 
                                 // create_command(&recv_message); 
+                                
                                 if (update_session(&recv_message)){
                                     send_ack.type = NS_ACK;
+                                    g_masterClientList[senderIndex].is_admin = true;
                                 }
                                 else{
                                     send_ack.type = NS_NAK;
@@ -311,30 +340,29 @@ int main(int argc, char *argv[])
                         }
                         /************** leaving ************/ 
                         else if(recv_message.type == LEAVE_SESS){ 
+                            char prevSession[50];
+                            bool wasAdmin = g_masterClientList[senderIndex].is_admin;
+                            strcpy(prevSession, g_masterClientList[senderIndex].current_session);
+                            g_masterClientList[senderIndex].is_admin = false;
                             leave_command(&recv_message);
+                            strcpy(g_masterClientList[senderIndex].current_session, "waiting_room");
+                            if (wasAdmin){
+                                // if the user that leaves the session is also the admin, want to set the admin to the first person in that session
+                                // call function that returns index of first person in session
+                                int newAdmin = firstClientInSession(prevSession);
+                                if (newAdmin != -1){
+                                    g_masterClientList[newAdmin].is_admin = true;
+                                }
+                                
+                                // edge case --> there was no one else in the session (returns -1 and do nothing)
+                            }
+                            
                         }
 
                         /*********** query ************/
 
                         else if(recv_message.type == QUERY){
-                            // for(int i = 0; i < MAX_USERS; i++){
-                            //     if(strcmp(g_masterClientList[i].username, "default_user")==0){
-                            //         break; 
-                            //     }
-                            //     printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
-                            //  }
-
-                           /* for(int sess=0; sess < MAX_USERS; sess++){
-                                if(strcmp(sessionArr[sess], "0") !== 0){
-                                    strcpy(sessionArr[sess], recv_message.data); 
-                                }
-                            }*/
-
-                            /* for(int sessi=0; sessi < MAX_USERS; sessi++){
-                                
-                                    printf("PLEASE WORK SESSIOS: %s\n", sessionArr[sessi]); 
-                                
-                            }*/
+                            
                             query_command(str_list);
                             printf("Returned query string:\n %s", str_list);
                             messageToString(QU_ACK, 0, "", str_list, str_list_cpy);
@@ -348,15 +376,7 @@ int main(int argc, char *argv[])
 
                         /************** Private messaging ************/ 
                         else if(recv_message.type == PM){
-                            printf("private_message request recieved\n");
-                            // check if user that we want to send it to exists //identifyClientByUsername
-                            // identify by username --> returns -1 --> doesnt exist --> set type to nack
-                            // if user exists --> g{index returned}.fd is where we send
-                            // set type to pm_ack, message size = MAX,
-                            // messageToString(send_ack.type, 0, "", "", str_ack);
-                            // if (send(i, str_ack, strlen(str_ack), 0) < 0){
-                            //     perror("Send Create ACK");
-                            // } 
+                            printf("private_message request recieved\n"); 
 
                             int clientToSendInd = identifyClientByUsername(&recv_message);
                             int fdToSend;
@@ -373,24 +393,49 @@ int main(int argc, char *argv[])
                             messageToString(send_ack.type, MAX_DATA, g_masterClientList[senderIndex].username, recv_message.data, send_pm);
                             send(g_masterClientList[clientToSendInd].fd, send_pm, MAX_DATA, 0);
                             bzero(send_pm, sizeof (send_pm));
+                        }
+                        /********************** View admin ****************************/
+                        else if (recv_message.type == VIEW_ADMIN){
+                            // the client that sent this --> what session they're in 
+                            // iterate through the global list if == current session + check if they are admin
+                            // if admin then return the index in the global that they correspond to
+                            printf("Requested to view Admin for session %s\n", g_masterClientList[senderIndex].current_session);
+                            int admin = view_admin(senderIndex);
+                            char sendMessage[500];
+                            messageToString(VIEW_ACK, MAX_DATA, g_masterClientList[admin].username, "", sendMessage);
+                            if (send(i, sendMessage, MAX_DATA, 0) == -1){
+                                perror("View Admin");
+    
+                            }
 
-                            // if(!sessionExists(recv_message.data)){
-                            //     // printf("Creating new session %s\n", recv_message.data); 
-                            //     // create_command(&recv_message); 
-                            //     if (update_session(&recv_message)){
-                            //         send_ack.type = NS_ACK;
-                            //     }
-                            //     else{
-                            //         send_ack.type = NS_NAK;
-                            //     }
-                            // } 
-                            // else {
-                            //     send_ack.type = NS_NAK;
-                            // }
-                            // messageToString(send_ack.type, 0, "", "", str_ack);
-                            // if (send(i, str_ack, strlen(str_ack), 0) < 0){
-                            //     perror("Send Create ACK");
-                            // }
+                        }
+                        else if (recv_message.type == SET_ADMIN){
+                            // the client that sent this --> what session they're in 
+                            // check that the user exists
+                            // check that they're logged in
+                            // same session
+                            // set the current admin's boolean to false and the new admin boolean to true
+                            // if admin then return the index in the global that they correspond to
+                            bool setAdmin = set_admin(&recv_message, senderIndex);
+                            if (setAdmin){
+                                send_message.type = SET_ACK;
+                            }
+                            else {
+                                send_message.type = SET_NAK;
+                            }
+                            char sendMessage[500];
+                            messageToString(send_message.type, MAX_DATA, g_masterClientList[setAdmin].username, "", sendMessage);
+                            if (send(i, sendMessage, MAX_DATA, 0) == -1){
+                                perror("Set Admin");
+                            }
+                            
+                        }
+                        else if (recv_message.type == KICK){
+                            // the client that sent this --> what session they're in 
+                            // check that the user that we want to kick out exists and is in the session
+                            // change their session to waiting room BOOM
+                            kick_user(&recv_message, senderIndex);
+                        
                         }
                         // logic for rest of the commands here
                         else {
@@ -490,6 +535,7 @@ bool register_client(message* recv_message, int fd){
     }
 
 }
+
 bool login_command(message* recv_message, int fdnum){
     printf("Printing the list before inserting.\n");
     printMasterClientList();
@@ -546,43 +592,11 @@ bool login_command(message* recv_message, int fdnum){
         }
         i++; 
 
-    }while(i < MAX_USERS); 
+    } while(i < MAX_USERS); 
     return false; 
 
-    // free(current_client);
-    // clear_recv_message(recv_message);
-    // printf("Printing the list after inserting.\n");
-    // printMasterClientList(); 
-    // printf("Printing Receive Message in login command: \n");
-    // print_recv_message(recv_message);
 }
 
-// assuming this function is only called if the session exists
-/*void join_command(message* recv_message){
-    int clientIndex = identifyClientByUsername(recv_message);
-    if ()
-    for(int i = 0; i < MAX_USERS; i++){
-        if (strcmp(g_masterClientList[i].username, "default_user") == 0) break;
-        if(g_masterClientList[i].logged_in == false){
-           printf("Client not logged in. Please log in and try again. \n"); 
-           ssize_t join_ACK; 
-           join_ACK = send(i, "JN_NAK", sizeof("JN_NAK"),0);
-           //return false; 
-       }
-       else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
-           strcpy(g_masterClientList[i].current_session, recv_message->data); 
-           g_masterClientList[i].logged_in = true; 
-           printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
-           ssize_t join_ACK; 
-            join_ACK = send(i, "JN_ACK", sizeof("JN_ACK"),0); 
-            if(join_ACK > 0){ 
-                printf("Join ACK sent. \n"); 
-            } 
-            //return true; 
-    }
-    //return false; 
-}
-}*/
 // assuming this function is only called if the session does not exist
 bool update_session(message* recv_message){
     int clientIndex = identifyClientByUsername(recv_message);
@@ -595,34 +609,11 @@ bool update_session(message* recv_message){
         printf("Client %s session ID is now %s\n", g_masterClientList[clientIndex].username, g_masterClientList[clientIndex].current_session);
         return true;
     }
-    /*
-    for(int i = 0; i < MAX_USERS; i++){ 
-        if (strcmp(g_masterClientList[i].username, "default_user") == 0) break;
-        else if(g_masterClientList[i].logged_in == false){ 
-            printf("Client not logged in. Please log in and try again. \n"); 
-        }
-        else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
-            strcpy(g_masterClientList[i].current_session, recv_message->data); 
-            g_masterClientList[i].logged_in = true; 
-            printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
-
-        }
-    }*/
 }
 
 
 void leave_command(message* recv_message){
     printf("leaving session function\n"); 
-    /*for(int i = 0; i < MAX_USERS; i++){ 
-        if(g_masterClientList[i].logged_in = false){ 
-            printf("Client not logged in. Please log in and try again. \n"); 
-        }
-        else if((strcmp(g_masterClientList[i].username, recv_message->source)==0)){
-            strcpy(g_masterClientList[i].current_session, "waiting_room"); 
-            g_masterClientList[i].logged_in = true; // do we need to set this to false? 
-            printf("Client %s session ID is now %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session);
-        }
-    }*/
     int clientIndex = identifyClientByUsername(recv_message);
     strcpy(g_masterClientList[clientIndex].current_session, "waiting_room");
 
@@ -631,7 +622,7 @@ void leave_command(message* recv_message){
 void query_command(char* final_list){
     int unique_sessions[MAX_USERS] = {-1}; 
     int sessArrayInd = 0;  
-    bool isUnique [MAX_USERS] = {false}; 
+    // bool isUnique [MAX_USERS] = {false}; 
     char active_users[MAX_DATA]; 
     bzero(active_users, MAX_DATA); 
     char active_sessions[MAX_DATA]; 
@@ -653,83 +644,20 @@ void query_command(char* final_list){
                     // want to compare if the stirng of the current session is a substring of the active sessions string
                     if (strstr(active_sessions, g_masterClientList[i].current_session) == NULL){
                         strcat(active_sessions,  g_masterClientList[i].current_session);
+                        strcat(active_sessions, "\n");
                         // strcat(active_sessions, "\n");
                     }
-
-
-                   // strcat(active_sessions, g_masterClientList[i].current_session);
-                    // for(int k=0; k < i; k++){
-                    
-                    //     if(strcmp(g_masterClientList[i].current_session, g_masterClientList[k].current_session) !=0){
-                    //         isUnique[i] = true; 
-                    //         ctive_cnt++; 
-                    //         strcat(active_sessions, g_masterClientList[i].current_session);
-                    //         printf("active count %d\n", active_cnt);
-                    //         printf("active session string: %s \n", active_sessions);  
-                    //         // keeptrack = true
-                    //     }
-                    // }
-                    //strcat(active_sessions, "\n");
-                    //for (k=0; k < (i-1); k++){
-                        //g[i].session != g[k].session 
-
-                    }
-                
-
-              //  uniqueSessions(unique_sessions,10);
-                // printf("sessArrayInd: %d\n", sessArrayInd); 
-                
-
-                /*for(int j=0; j <= MAX_USERS ; j++){
-
-                    if(strcmp(g_masterClientList[i].current_session, "waiting_room") != 0){
-                        if (unique_sessions[j] == -1){
-                            unique_sessions[j] = i;
-                            strcat(active_sessions, g_masterClientList[i].current_session);
-                            strcat(active_sessions, "\n");
-                            printf("Adding session %s from client %d into unique_sessions at index %d\n", g_masterClientList[i].current_session,i,j);
-                            sessArrayInd++;
-                            break;
-                        }
-                        else if (strcmp(g_masterClientList[i].current_session, g_masterClientList[unique_sessions[j]].current_session) == 0){
-                            printf("There exists another client in the same room. Do not add to unique list.\n");
-                            break;
-                        }
-                    }*/
-
-                    // else if (unique_sessions[j] == -1){
-                    //     // we have iterated through all existing entries without breaking --> insert here
-                    //     unique_sessions[j] = i;
-                    //     strcat(active_sessions, g_masterClientList[i].current_session);
-                    //     strcat(active_sessions, "\n");
-                    //     printf("Adding session %s from client %d into unique_sessions at index %d\n", g_masterClientList[i].current_session,i,sessArrayInd);
-                    //     sessArrayInd++;
-                    //     break;
-                    // }
-
-                    // /*else if(strcmp(g_masterClientList[i].current_session, "default_room") == 0){
-                    //     break; 
-                    // }*/
-                    // else if (strcmp(g_masterClientList[i].current_session, g_masterClientList[unique_sessions[j]].current_session) == 0){
-                    //     continue;
-                    // }
-                    
-                //}
+                }
             }
         }
-        // printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
     }
-
+    /*
     for(int m = 0; m <MAX_USERS; m++){
         if(isUnique[m]){
             printf("username M: %s and session %s \n", g_masterClientList[m].username, g_masterClientList[m].current_session); 
             strcat(active_sessions, g_masterClientList[m].current_session); 
         }
-    }
-
-    // for (int u = 0; u < 10; u++){
-    //     printf("unique session at index %d has value %d from global.\n", u, unique_sessions[u]);
-    // }
+    }*/
 
     // concatenate the username and session strings, then copy into final string
     strcat(active_users, active_sessions);
@@ -737,6 +665,58 @@ void query_command(char* final_list){
     printf("Query string: %s\n", final_list); 
     return;
 }
+
+int view_admin(int senderIndex){
+    // the client that sent this --> what session they're in 
+    // iterate through the global list if == current session + check if they are admin
+    // if admin then return the index in the global that they correspond to
+    char currentSession[50];
+    strcpy(currentSession, g_masterClientList[senderIndex].current_session);
+    for (int i = 0; i < MAX_USERS; i++){
+        // find the index of the user with the same name
+        if ((strcmp(g_masterClientList[i].current_session, currentSession)==0) && g_masterClientList[i].is_admin) {
+            return i;
+        }
+    }
+    return -1;
+}
+bool set_admin(message* recv_message, int senderIndex){
+    // the client that sent this --> what session they're in 
+    if (!g_masterClientList[senderIndex].is_admin) return false;
+    int newAdmin = identifyClientByUsername(recv_message);
+    if (newAdmin == -1){
+        printf("User %s does not exist.\n",recv_message->source);
+        return false;
+    }else if (!g_masterClientList[newAdmin].logged_in){
+        return false;
+    }else if (strcmp(g_masterClientList[newAdmin].current_session, g_masterClientList[senderIndex].current_session) != 0){
+        printf("User %s is not in the same session.\n",recv_message->source);
+        return false;
+    }else {
+        printf("User %s is the new admin\n", recv_message->source);
+        g_masterClientList[senderIndex].is_admin = false;
+        g_masterClientList[newAdmin].is_admin = true;
+        return true;
+    }
+
+    // check that the user exists
+    // check that they're logged in
+    // same session
+    // set the current admin's boolean to false and the new admin boolean to true
+    // if admin then return the index in the global that they correspond to
+}
+void kick_user(message* recv_message, int senderIndex){
+    // the client that sent this --> what session they're in 
+    // check that the user that we want to kick out exists and is in the session
+    // change their session to waiting room BOOM
+    int screwThisGuy = identifyClientByUsername(recv_message);
+    if (!g_masterClientList[senderIndex].is_admin) return;
+    if (strcmp(g_masterClientList[screwThisGuy].current_session, g_masterClientList[senderIndex].current_session) == 0){
+        strcpy(g_masterClientList[screwThisGuy].current_session, "waiting_room");
+    }
+
+}
+
 
 /************************************* Helper Functions **************************************/
 bool sessionExists(char* sessionID){
@@ -763,18 +743,6 @@ bool sessionExists(char* sessionID){
 
 
         }
-        // if(!g_masterClientList[i].logged_in){
-        //     //client_info* current_client = g_masterClientList[i];
-        //     if(strcmp(current_client.current_session,sessionID) == 0){
-        //         printf("Current client is %s\n", current_client.username);
-        //         printf("Session %s exists.\n", sessionID); 
-        //         return true; 
-        //     }
-        // }
-        // else{
-        //     // session has not come up and we have iterated through all non-Null entries 
-        //     printf("Session %s does not exist.\n", sessionID); 
-        // }
     }
     return false; 
 
@@ -845,6 +813,7 @@ void printMasterClientList(){
         printf("current session: %s\n", current_client->current_session);
         printf("file descriptor: %d\n", current_client->fd);
         printf("logged in? %d\n",current_client->logged_in);
+        printf("admin? %d\n", current_client->is_admin);
         printf("\n");
     }
 }
@@ -877,6 +846,7 @@ void initializeMasterClientList(){
         strcpy(g_masterClientList[i].current_session, "default_session"); 
         g_masterClientList[i].fd = -1; 
         g_masterClientList[i].logged_in = false; 
+        g_masterClientList[i].is_admin = false;
     }
 }
 
@@ -900,6 +870,15 @@ int identifyClientByUsername(message* recv_message){
     return -1;
 }
 
+int firstClientInSession(char* session){
+    for (int i = 0; i < MAX_USERS; i++){
+        // find the index of the user with the same name
+        if (strcmp(g_masterClientList[i].username, session)==0){
+            return i;
+        }
+    }
+    return -1;
+}
 
 
 

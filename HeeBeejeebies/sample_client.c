@@ -30,12 +30,27 @@
 #define PM 90
 #define PM_ACK 95 
 #define PM_NAK 96 
+#define REGISTER 100
+#define RG_ACK 105
+#define RG_NAK 106 
+#define VIEW_ADMIN 110
+#define VIEW_ACK 111
+#define SET_ADMIN 120
+#define SET_ACK 121
+#define SET_NAK 122
+#define KICK 130
+#define KICK_ACK 131
+#define KICK_NAK 132
 
 char msg[MAX_DATA] = {'\0'};
 // char servermsg[50] = {'\0'}; 
 int* serverreply; 
 char serverreplymsg[50] = {'\0'}; 
 void login(char* login_info);
+void registerUser(char* buffer);
+void viewAdmin();
+void setAdmin(char* buffer);
+void kickOut(char* buffer);
 void logout();
 void joinSession(char* session_id);
 void leaveSession(); 
@@ -84,9 +99,25 @@ void *recvmg(void *my_sock)
             // printf("quack quack.\n");
             printf("%s", recv_message.data);
         }else if (recv_message.type == MESSAGE){
-            printf("%s: %s\n", recv_message.source, recv_message.data);
+            printf("%s: %s", recv_message.source, recv_message.data);
         }else if (recv_message.type == PM_ACK){
             printf("%s: %s", recv_message.source, recv_message.data);
+        }else if (recv_message.type == PM_NAK){
+            printf("Unable to private message %s\n", recv_message.source);
+        }else if (recv_message.type == RG_ACK){
+            printf("Registration successful.\n");
+        }else if (recv_message.type == RG_NAK){
+            printf("Unable to register.\n");
+        }else if (recv_message.type == VIEW_ACK){
+            printf("The admin of the current session is %s\n", recv_message.source); // source has the value of the admin --> remember for server !!
+        }else if (recv_message.type == SET_ACK){
+            printf("Successfully set admin.\n");
+        }else if (recv_message.type == SET_NAK){
+            printf("Unable to set admin.\n");
+        }else if (recv_message.type == KICK_ACK){
+            printf("Successfully kicked out user.\n");
+        }else if (recv_message.type == KICK_NAK){
+            printf("Unable to kick out user.\n");
         }
         else{
             fputs(msg,stdout);
@@ -144,7 +175,7 @@ int main(/*int argc,char *argv[]*/){
                 printf("Please login first. \n"); 
             }
             else{
-                printf("join session: \n");
+                //printf("join session: \n");
                 joinSession(msg);
   
             }
@@ -163,7 +194,7 @@ int main(/*int argc,char *argv[]*/){
                 
             }
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
-            printf("leave session: \n");
+            //printf("leave session: \n");
             
         }
 
@@ -216,6 +247,36 @@ int main(/*int argc,char *argv[]*/){
             pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
             
         }
+        // registration
+        else if((strncmp(msg, "/register", 9)) == 0){
+            // call register function 
+            // should take in 2 arguments (username -> source and password->data) 
+            registerUser(msg);
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
+            
+        }
+        // view admin
+        else if((strncmp(msg, "/viewadmin", strlen("/viewadmin"))) == 0){
+            // call register function 
+            // should take in 2 arguments (username -> source and password->data) 
+            viewAdmin();
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
+            
+        }
+        // set the admin
+        else if((strncmp(msg, "/setadmin", strlen("/setadmin"))) == 0){
+            // call register function 
+            // should take in 2 arguments (username -> source and password->data) 
+            setAdmin(msg);
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
+        }
+        else if((strncmp(msg, "/kick", strlen("/kick"))) == 0){
+            // call register function 
+            // should take in 2 arguments (username -> source and password->data) 
+            kickOut(msg);
+            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
+        }
+
         // typical text that needs to be sent to everyone else in the chat
         else {
             // default is message --> write it in a way that can be read from the server 
@@ -348,6 +409,7 @@ void joinSession(char* buffer){
 
     joinSessionID = newString[1]; 
     printf("session ID: %s\n", joinSessionID); 
+    joinSessionID[strcspn(joinSessionID, "\n")] = 0;
     sendMessageToString(JOIN, client_name, joinSessionID); 
     clear_message();
 
@@ -405,9 +467,6 @@ void list(){
     clear_message();
 }
 
-
-
-
 void createSession(char* buffer){
     char* createSessionID;
     char newString[10][30];  
@@ -425,9 +484,93 @@ void createSession(char* buffer){
         }
     }
 
-    createSessionID = newString[1]; 
+    createSessionID = newString[1];
+    createSessionID[strcspn(createSessionID, "\n")] = 0;
     printf("session ID: %s\n", createSessionID); 
     sendMessageToString(NEW_SESS, client_name, createSessionID);
+    clear_message();
+}
+
+
+void registerUser(char* buffer){
+    char* username;
+    char* password;
+    char newString[10][30];  
+    int i, j, ctr; 
+    i=0; j=0; ctr=0; 
+    for(i=0; i<=(strlen(buffer)); i++){
+        if(buffer[i]==' ' || buffer[i]=='\0'){
+            newString[ctr][j]='\0'; 
+            ctr++;
+            j=0; 
+        }
+        else{
+            newString[ctr][j] = buffer[i]; 
+            j++; 
+        }
+    }
+
+    username = newString[1]; 
+    password = newString[2];
+    password[strcspn(password, "\n")] = 0;
+    strcpy(client_name, newString[1]);
+    // printf("session ID: %s\n", joinSessionID); 
+    sendMessageToString(REGISTER, username, password); 
+    clear_message();
+}
+
+void viewAdmin(){
+    sendMessageToString(VIEW_ADMIN, client_name, "");
+    clear_message();
+}
+void setAdmin(char* buffer){
+    char* newAdmin;
+    char newString[10][30];  
+    int i, j, ctr; 
+    i=0; j=0; ctr=0; 
+    for(i=0; i<=(strlen(buffer)); i++){
+        if(buffer[i]==' ' || buffer[i]=='\0'){
+            newString[ctr][j]='\0'; 
+            ctr++;
+            j=0; 
+        }
+        else{
+            newString[ctr][j] = buffer[i]; 
+            j++; 
+        }
+    }
+
+    newAdmin = newString[1]; 
+    // strcpy(newAdmin, newAdmin);
+    newAdmin[strcspn(newAdmin, "\n")] = 0;
+    strcpy(client_name, newString[1]);
+    // printf("session ID: %s\n", joinSessionID); 
+    sendMessageToString(SET_ADMIN, newAdmin, ""); // sending newAdmin in source
+    clear_message();
+}
+void kickOut(char* buffer){
+    char* screwThisGuy;
+    char newString[10][30];  
+    int i, j, ctr; 
+    i=0; j=0; ctr=0; 
+    for(i=0; i<=(strlen(buffer)); i++){
+        if(buffer[i]==' ' || buffer[i]=='\0'){
+            newString[ctr][j]='\0'; 
+            ctr++;
+            j=0; 
+        }
+        else{
+            newString[ctr][j] = buffer[i]; 
+            j++; 
+        }
+    }
+
+    screwThisGuy = newString[1]; 
+    // strcpy(screwThisGuy, screwThisGuy);
+    screwThisGuy[strcspn(screwThisGuy, "\n")] = 0;
+    strcpy(client_name, newString[1]);
+    // printf("session ID: %s\n", joinSessionID); 
+    sendMessageToString(KICK, screwThisGuy, ""); // sending newAdmin in source
     clear_message();
 }
 

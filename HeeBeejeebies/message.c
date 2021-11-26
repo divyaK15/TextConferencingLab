@@ -103,58 +103,6 @@ message convertStringToMessage2(char* msgString, int sizeOfMessage, int numEntri
     return msgStruct;
 }
 
-void decodeStringToMessage(char* str, message* recv_message){
-    memset(recv_message->data, 0, MAX_DATA);
-    if (strlen(str) == 0) return;
-
-    regex_t regex;
-    if(regcomp(&regex, "[:]", REG_EXTENDED)) {
-        fprintf(stderr, "Could not compile regex\n");
-    }
-
-    // Match regex to find ":" 
-    regmatch_t pmatch[1];
-    int cursor = 0;
-    const int regBfSz = MAX_DATA;
-    char buf[regBfSz];     // Temporary buffer for regex matching        
-
-    // Match type
-    if(regexec(&regex, str + cursor, 1, pmatch, REG_NOTBOL)) {
-        fprintf(stderr, "Error matching regex\n");
-        exit(1);
-    }
-    memset(buf, 0, regBfSz * sizeof(char));
-    memcpy(buf, str + cursor, pmatch[0].rm_so);
-    recv_message -> type = atoi(buf);
-    cursor += (pmatch[0].rm_so + 1);
-
-    // Match size
-    if(regexec(&regex, str + cursor, 1, pmatch, REG_NOTBOL)) {
-        fprintf(stderr, "Error matching regex\n");
-        exit(1);
-    }
-    memset(buf, 0, regBfSz * sizeof(char));
-    memcpy(buf, str + cursor, pmatch[0].rm_so);
-    recv_message -> size = atoi(buf);
-    cursor += (pmatch[0].rm_so + 1);
-
-    // Match source
-    if(regexec(&regex, str + cursor, 1, pmatch, REG_NOTBOL)) {
-        fprintf(stderr, "Error matching regex\n");
-        exit(1);
-    }
-    memcpy(recv_message -> source, str + cursor, pmatch[0].rm_so);
-    recv_message -> source[pmatch[0].rm_so] = 0;
-    cursor += (pmatch[0].rm_so + 1);
-
-    // Match data
-    memcpy(recv_message -> data, str + cursor, recv_message -> size);
-
-
-
-
-}
-
 message convertStringToMessage(char* msgString){
     
     message msgStruct;
