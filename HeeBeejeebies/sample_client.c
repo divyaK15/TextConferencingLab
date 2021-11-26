@@ -84,10 +84,9 @@ void *recvmg(void *my_sock)
             printf("quack quack.\n");
             printf("%s", recv_message.data);
         }else if (recv_message.type == MESSAGE){
-            printf("%s: %s", recv_message.source, recv_message.data);
-        }
-        else if (recv_message.type == PM_ACK){
-            printf("%s: %s", recv_message.source, recv_message.data);
+            printf("%s: %s\n", recv_message.source, recv_message.data);
+        }else if (recv_message.type == PM_ACK){
+            printf("%s: %s\n", recv_message.source, recv_message.data);
         }
         else{
             fputs(msg,stdout);
@@ -175,9 +174,9 @@ int main(/*int argc,char *argv[]*/){
                 printf("Please login first. \n"); 
             }
             else{
-
-            pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
-            list();
+                list();
+                pthread_create(&recvt,NULL,(void *)recvmg,&socket_fd);
+            
             }
         }
 
@@ -254,12 +253,12 @@ void sendMessageToString(unsigned int type, /*unsigned int size,*/ unsigned char
     char message_string[1000]; 
 	bzero(message_string, 1000);
 
-	printf("type: %u\nsize: %u\nsource: %s\ndata: %s\n", send_message.type, send_message.size, send_message.source, send_message.data);
+	// printf("type: %u\nsize: %u\nsource: %s\ndata: %s\n", send_message.type, send_message.size, send_message.source, send_message.data);
 
 
     int message_string_temp = sprintf(message_string, "%u:%u:%s:%s",send_message.type, send_message.size, send_message.source, send_message.data);
     //memcpy(message_string, send_message.filedata, packetToSend.size);
-    printf("message: %s\n",message_string);
+    // printf("message: %s\n",message_string);
 	
     ssize_t send_return; 
     //send_return = send(socket_fd, &message_string, sizeof(message_string), 0); 
@@ -359,10 +358,16 @@ void privateMessage(char* buffer){
     char messToSend[MAX_DATA];
     bzero(messToSend, MAX_DATA);  
     char* clientToSend; 
-    char newString[10][30];  
+    char newString[100][30];
+    // want to initialize everything first
+    for (int n = 0; n < 100; n++){
+        bzero(newString[n], 30);
+    }  
+
+
     int i, j, ctr; 
     i=0; j=0; ctr=0; 
-    for(i=0; i<=(strlen(buffer)); i++){
+    for(i=0; i<(strlen(buffer)); i++){
         if(buffer[i]==' ' || buffer[i]=='\0'){
             newString[ctr][j]='\0'; 
             ctr++;
@@ -375,9 +380,13 @@ void privateMessage(char* buffer){
     }
 
     clientToSend = newString[1]; 
-   // messToSend = newString[2]; 
-    printf("Enter message to %s here:", clientToSend); 
-    scanf("%[^\n]", messToSend); 
+    // messToSend = newString[2]; 
+    for (int n = 2; n < 100; n++){
+        strcat(messToSend, newString[n]);
+        strcat(messToSend, " ");
+    }
+    // printf("Enter message to %s here:", clientToSend); 
+    // scanf("%[^\n]", messToSend); 
     printf("sending %s to %s: \n", messToSend, clientToSend); 
     sendMessageToString(PM, clientToSend, messToSend); 
     clear_message();

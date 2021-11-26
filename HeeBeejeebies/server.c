@@ -341,13 +341,14 @@ int main(int argc, char *argv[])
                             // printf("Returned query string (after message):\n %s", str_list_cpy);
                             if (send(i, str_list_cpy, MAX_DATA, 0) == -1){
                                 perror("Query");
+    
                             }
 
                         }
 
                         /************** Private messaging ************/ 
                         else if(recv_message.type == PM){
-                            printf("create request recieved");
+                            printf("private_message request recieved\n");
                             // check if user that we want to send it to exists //identifyClientByUsername
                             // identify by username --> returns -1 --> doesnt exist --> set type to nack
                             // if user exists --> g{index returned}.fd is where we send
@@ -371,6 +372,7 @@ int main(int argc, char *argv[])
                             }
                             messageToString(send_ack.type, MAX_DATA, g_masterClientList[senderIndex].username, recv_message.data, send_pm);
                             send(g_masterClientList[clientToSendInd].fd, send_pm, MAX_DATA, 0);
+                            bzero(send_pm, sizeof (send_pm));
 
                             // if(!sessionExists(recv_message.data)){
                             //     // printf("Creating new session %s\n", recv_message.data); 
@@ -648,18 +650,25 @@ void query_command(char* final_list){
                 int active_cnt = 0; 
 
                 if(strcmp(g_masterClientList[i].current_session, "waiting_room") !=0){
+                    // want to compare if the stirng of the current session is a substring of the active sessions string
+                    if (strstr(active_sessions, g_masterClientList[i].current_session) == NULL){
+                        strcat(active_sessions,  g_masterClientList[i].current_session);
+                        // strcat(active_sessions, "\n");
+                    }
+
+
                    // strcat(active_sessions, g_masterClientList[i].current_session);
-                    for(int k=0; k < i; k++){
+                    // for(int k=0; k < i; k++){
                     
-                        if(strcmp(g_masterClientList[i].current_session, g_masterClientList[k].current_session) !=0){
-                            isUnique[i] = true; 
-                            /*active_cnt++; 
-                            strcat(active_sessions, g_masterClientList[i].current_session);
-                            printf("active count %d\n", active_cnt);
-                            printf("active session string: %s \n", active_sessions); */ 
-                            //keeptrack = true
-                        }
-                    } 
+                    //     if(strcmp(g_masterClientList[i].current_session, g_masterClientList[k].current_session) !=0){
+                    //         isUnique[i] = true; 
+                    //         ctive_cnt++; 
+                    //         strcat(active_sessions, g_masterClientList[i].current_session);
+                    //         printf("active count %d\n", active_cnt);
+                    //         printf("active session string: %s \n", active_sessions);  
+                    //         // keeptrack = true
+                    //     }
+                    // }
                     //strcat(active_sessions, "\n");
                     //for (k=0; k < (i-1); k++){
                         //g[i].session != g[k].session 
@@ -825,6 +834,8 @@ void printMasterClientList(){
     for (i = 0; i < MAX_USERS ; ++i){
         if(strcmp(g_masterClientList[i].username, "default_user")==0){
             break; 
+        }else if (!g_masterClientList[i].logged_in){
+            continue;
         }
         client_info* current_client = &g_masterClientList[i];
         
@@ -839,7 +850,7 @@ void printMasterClientList(){
 }
 
 void initializeMasterClientList(){
-    int j = 0;
+    
     // initialize client stefan
     strcpy(g_masterClientList[0].username,"stefan");
     strcpy(g_masterClientList[0].password,"redpandas123");
