@@ -45,6 +45,7 @@ typedef struct client_info{
 //Create a pointer to structs array, and initialize each element to null pointer 
 //When new client connects, intitialize struct with client info 
 // add the struct to the pointer array 
+//char sessionArr[MAX_USERS][MAX_USERS] = {"0"}; 
 
 static client_info g_masterClientList[MAX_USERS]; 
 int g_numEntries = 0;
@@ -322,6 +323,18 @@ int main(int argc, char *argv[])
                             //     }
                             //     printf("Username: %s, SessionID: %s\n", g_masterClientList[i].username, g_masterClientList[i].current_session); 
                             //  }
+
+                           /* for(int sess=0; sess < MAX_USERS; sess++){
+                                if(strcmp(sessionArr[sess], "0") !== 0){
+                                    strcpy(sessionArr[sess], recv_message.data); 
+                                }
+                            }*/
+
+                            /* for(int sessi=0; sessi < MAX_USERS; sessi++){
+                                
+                                    printf("PLEASE WORK SESSIOS: %s\n", sessionArr[sessi]); 
+                                
+                            }*/
                             query_command(str_list);
                             printf("Returned query string:\n %s", str_list);
                             messageToString(QU_ACK, 0, "", str_list, str_list_cpy);
