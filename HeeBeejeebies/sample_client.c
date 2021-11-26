@@ -81,12 +81,12 @@ void *recvmg(void *my_sock)
         }else if (recv_message.type == NS_NAK){
             printf("Unable to create session.\n");
         }else if (recv_message.type == QU_ACK){
-            printf("quack quack.\n");
+            // printf("quack quack.\n");
             printf("%s", recv_message.data);
         }else if (recv_message.type == MESSAGE){
             printf("%s: %s\n", recv_message.source, recv_message.data);
         }else if (recv_message.type == PM_ACK){
-            printf("%s: %s\n", recv_message.source, recv_message.data);
+            printf("%s: %s", recv_message.source, recv_message.data);
         }
         else{
             fputs(msg,stdout);
@@ -209,7 +209,7 @@ int main(/*int argc,char *argv[]*/){
                 printf("Please login first. \n"); 
             }
             else{
-                printf("Private Message: \n");
+                // printf("Private Message: \n");
                 privateMessage(msg);
   
             }
@@ -381,13 +381,13 @@ void privateMessage(char* buffer){
 
     clientToSend = newString[1]; 
     // messToSend = newString[2]; 
-    for (int n = 2; n < 100; n++){
+    for (int n = 2; ((n < 100) && (newString[n][0] != '\0')); n++){
         strcat(messToSend, newString[n]);
         strcat(messToSend, " ");
     }
     // printf("Enter message to %s here:", clientToSend); 
     // scanf("%[^\n]", messToSend); 
-    printf("sending %s to %s: \n", messToSend, clientToSend); 
+    // printf("sending %s to %s", messToSend, clientToSend); 
     sendMessageToString(PM, clientToSend, messToSend); 
     clear_message();
 }
