@@ -344,8 +344,11 @@ int main(int argc, char *argv[])
                             //     perror("Send Create ACK");
                             // } 
 
-                            int clientToSendInd = identifyClientByUsername(recv_message);
-                            int fdToSend = -1; 
+                            int clientToSendInd = identifyClientByUsername(&recv_message);
+                            int fdToSend;
+                            char send_pm[MAX_DATA];
+                            bzero(send_pm, MAX_DATA);
+
                             if(clientToSendInd < 0){
                                 send_ack.type = PM_NAK; 
                             }
@@ -353,6 +356,8 @@ int main(int argc, char *argv[])
                                 fdToSend = g_masterClientList[clientToSendInd].fd; 
                                 send_ack.type = PM_ACK; 
                             }
+                            messageToString(send_ack.type, MAX_DATA, g_masterClientList[senderIndex].username, recv_message.data, send_pm);
+                            send(g_masterClientList[clientToSendInd].fd, send_pm, MAX_DATA, 0);
 
                             // if(!sessionExists(recv_message.data)){
                             //     // printf("Creating new session %s\n", recv_message.data); 

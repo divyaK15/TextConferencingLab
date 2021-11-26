@@ -86,6 +86,9 @@ void *recvmg(void *my_sock)
         }else if (recv_message.type == MESSAGE){
             printf("%s: %s", recv_message.source, recv_message.data);
         }
+        else if (recv_message.type == PM_ACK){
+            printf("%s: %s", recv_message.source, recv_message.data);
+        }
         else{
             fputs(msg,stdout);
         }
@@ -374,7 +377,7 @@ void privateMessage(char* buffer){
     clientToSend = newString[1]; 
    // messToSend = newString[2]; 
     printf("Enter message to %s here:", clientToSend); 
-    scanf("%s", messToSend); 
+    scanf("%[^\n]", messToSend); 
     printf("sending %s to %s: \n", messToSend, clientToSend); 
     sendMessageToString(PM, clientToSend, messToSend); 
     clear_message();
